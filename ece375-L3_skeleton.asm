@@ -44,6 +44,8 @@ INIT:							; The initialization routine
 		out DDRD, mpr
 		ldi mpr, $FF
 		out PORTD, mpr
+		
+		rcall LCDClr			; Clear LCD
 
 		; NOTE that there is no RET or RJMP from INIT,
 		; this is because the next instruction executed is the
