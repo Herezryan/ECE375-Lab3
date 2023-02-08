@@ -40,10 +40,12 @@ INIT:							; The initialization routine
 
 		rcall LCDInit			; Initialize LCD Display
 
-		ldi		mpr, $00		; Set Port D Data Direction Register
-		out		DDRD, mpr		; for input
-		ldi		mpr, $FF		; Initialize Port D Data Register
-		out		PORTD, mpr		; so all Port D inputs are Tri-State
+		ldi mpr, $00			; Initialize Port D for input
+		out DDRD, mpr
+		ldi mpr, $FF
+		out PORTD, mpr
+		
+		rcall LCDClr			; Clear LCD
 
 		; NOTE that there is no RET or RJMP from INIT,
 		; this is because the next instruction executed is the
