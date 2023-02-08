@@ -80,9 +80,7 @@ MAIN:							; The Main program
 		brne MAIN
 
 		rcall LCDWrLn1
-
-NEXT:
-
+		
 		ldi ZL, low(STRING_BEG_L2<<1)
 		ldi ZH, high(STRING_BEG_L2<<1)
 
@@ -91,6 +89,7 @@ NEXT:
 
 		ldi counter, 12
 
+NEXT:
 		;cpi mpr, (1<<PD_seven)		; Check if pd7 is hit
 		lpm mpr, Z+
 		st Y+, mpr
