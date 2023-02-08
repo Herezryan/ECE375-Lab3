@@ -45,13 +45,7 @@ INIT:							; The initialization routine
 		ldi		mpr, $FF		; Initialize Port D Data Register
 		out		PORTD, mpr		; so all Port D inputs are Tri-State
 
-		;strings from program mem to data mem
-        ldi ZL, low(STRING_BEG_L1<<1)
-		ldi ZH, high(STRING_BEG_L1<<1)
-
-        ;pointing y to address of line1
-        ldi YL, $00
-		ldi YH, $01
+		
 
 
 ;***********************************************************
@@ -64,6 +58,16 @@ MAIN:							; The Main program
 		cpi		mpr, (1<<PD_five)		; Check for button d5
 		brne	NEXT					; If five is not pressed wait
 		ldi counter, 9					;Setting our counter to 9
+
+		;strings from program mem to data mem
+        ldi ZL, low(STRING_BEG_L1<<1)
+		ldi ZH, high(STRING_BEG_L1<<1)
+
+        ;pointing y to address of line1
+        ldi YL, $00
+		ldi YH, $01
+
+		
 		rcall	PRINT					; Call the subroutine print
 		rjmp	MAIN					; Continue through main 
 
@@ -100,7 +104,7 @@ PRINT:
         ldi YL, $10
 		ldi YH, $01
 
-		ldi counter, 12
+		ldi counter, 16
 
 		rcall PRINT2
 
@@ -130,7 +134,7 @@ CLEAR:
 STRING_BEG_L1:
 .DB		"Paul Lipp"				; Declaring data in ProgMem
 STRING_BEG_L2:
-.DB		"Ryan Muriset"
+.DB		"and Ryan Muriset"
 STRING_END:
 
 ;***********************************************************
