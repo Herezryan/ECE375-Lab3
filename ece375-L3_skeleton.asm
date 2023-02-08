@@ -80,12 +80,20 @@ MAIN:							; The Main program
 		brne MAIN
 
 		rcall LCDWrLn1
-		
+
+		clr r28
+		clr r29
+		clr r26
+		clr r27
+		clr r30
+
 		ldi ZL, low(STRING_BEG_L2<<1)
 		ldi ZH, high(STRING_BEG_L2<<1)
 
 		ldi YL, $10
 		ldi YH, $01
+
+		clr counter
 
 		ldi counter, 12
 
@@ -103,7 +111,7 @@ NEXT:
 NEXT1:	cpi mpr, (1<<PD_five)
 		brne NEXT2
 		;name and hello world
-		rcall WORLD
+		;rcall WORLD
 
 		rjmp MAIN
 
@@ -184,10 +192,10 @@ WORLD:
 ;-----------------------------------------------------------
 STRING_BEG_L1:
 .DB		"Paul Lipp"
-STRING_BEG_L2:
-.DB		"Ryan Muriset"		; Declaring data in ProgMem	9
 STRING_END_1:
-;STRING_BEG_L2:
+STRING_BEG_L2:
+.DB		"and Ryan Muriest"	; Declaring data in ProgMem	9
+STRING_END_2:
 ;.DB		"Ryan Muriset"	;	12
 ;STRING_END_L2:
 
