@@ -65,7 +65,7 @@ MAIN:							; The Main program
 NEXT:
         cpi		mpr, (1<<PD_four)	; Check for Left Whisker input (Recall Active)
 		brne	MAIN			; No Whisker input, continue program
-		rcall	clear			; Call subroutine HitLeft
+		rcall	CLEAR			; Call subroutine HitLeft
 		rjmp	MAIN			; Continue through main
 ;***********************************************************
 ;*	Functions and Subroutines
