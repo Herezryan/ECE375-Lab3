@@ -97,25 +97,9 @@ CLEAR:
 		ret						; End a function with RET
 
 WORLD:
-		;move stuff to data memory
-		;line 1 $0100 - $010F
-		;line 2 $0110 - $011F
-
-		;ldi mpr, 101
-		;ldi XL, low($0100)
-		;ldi XH, high($0100)
-
+	
 		ldi ZL, low(STRING_BEG<<1)
 		ldi ZH, high(STRING_BEG<<1)
-
-		;rcall Bin2ASCII
-
-		;LPM mpr, Z+
-
-		;ldi YL, $00
-		;ldi YH, $01
-		;ld r16, Y+
-		;st Y, r17
 
 		lpm r15, Z+
 		lpm r16, Z+
@@ -127,9 +111,6 @@ WORLD:
 
 		rcall LCDWrLn1
 
-		ret
-		;rcall LCDWrLn2
-		
 
 ;***********************************************************
 ;*	Stored Program Data
