@@ -1,8 +1,6 @@
 ;***********************************************************
-;*	This is the skeleton file for Lab 3 of ECE 375
-;*
-;*	 Author: Enter your name
-;*	   Date: Enter date
+;*	 Author: Paul Lipp and Ryan Muriset
+;*	   Date: Feb 3, 2023
 ;*
 ;***********************************************************
 
@@ -47,26 +45,28 @@ INIT:							; The initialization routine
 		ldi		mpr, $FF		; Initialize Port D Data Register
 		out		PORTD, mpr		; so all Port D inputs are Tri-State
 
-        ;Setting our counter to 9
-        ldi counter, 13
+ 
 
 
 ;***********************************************************
 ;*	Main Program
 ;***********************************************************
 MAIN:							; The Main program
-		; Main function design is up to you. Below is an example to brainstorm.
-        in		mpr, PIND		; Get input from Port D
+	
+        in		mpr, PIND				; Get input from Port D
 		andi	mpr, (1<<PD_five|1<<PD_four)
-		cpi		mpr, (1<<PD_five)	; Check for button d5
-		brne	NEXT			; If five is not pressed wait
-		rcall	PRINT		; Call the subroutine HitRight
-		rjmp	MAIN			; Continue through main 
+		cpi		mpr, (1<<PD_five)		; Check for button d5
+		brne	NEXT					; If five is not pressed wait
+		rcall	PRINT					; Call the subroutine print
+		ldi counter, 13					;Setting our counter to 9
+		rjmp	MAIN					; Continue through main 
+
 NEXT:
-        cpi		mpr, (1<<PD_four)	; Check for Left Whisker input (Recall Active)
-		brne	MAIN			; No Whisker input, continue program
-		rcall	CLEAR			; Call subroutine HitLeft
-		rjmp	MAIN			; Continue through main
+        cpi		mpr, (1<<PD_four)		; Check for Left Whisker input (Recall Active)
+		brne	MAIN					; No Whisker input, continue program
+		rcall	CLEAR					; Call subroutine HitLeft
+		rjmp	MAIN					; Continue through main
+		
 ;***********************************************************
 ;*	Functions and Subroutines
 ;***********************************************************
