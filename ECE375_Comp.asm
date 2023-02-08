@@ -45,7 +45,13 @@ INIT:							; The initialization routine
 		ldi		mpr, $FF		; Initialize Port D Data Register
 		out		PORTD, mpr		; so all Port D inputs are Tri-State
 
- 
+		;strings from program mem to data mem
+        ldi ZL, low(STRING_BEG_L1<<1)
+		ldi ZH, high(STRING_BEG_L1<<1)
+
+        ;pointing y to address of line1
+        ldi YL, $00
+		ldi YH, $01
 
 
 ;***********************************************************
@@ -57,8 +63,8 @@ MAIN:							; The Main program
 		andi	mpr, (1<<PD_five|1<<PD_four)
 		cpi		mpr, (1<<PD_five)		; Check for button d5
 		brne	NEXT					; If five is not pressed wait
+		ldi counter, 9					;Setting our counter to 9
 		rcall	PRINT					; Call the subroutine print
-		ldi counter, 13					;Setting our counter to 9
 		rjmp	MAIN					; Continue through main 
 
 NEXT:
@@ -77,15 +83,7 @@ NEXT:
 ;		beginning of your functions
 ;-----------------------------------------------------------
 PRINT:	
-        ;strings from program mem to data mem
-        ldi ZL, low(STRING_BEG<<1)
-		ldi ZH, high(STRING_BEG<<1)
-
-        ;pointing y to address of line1
-        ldi YL, $00
-		ldi YH, $01
-
-
+     
         ;load from program memory
         lpm mpr, Z+
 		st Y+, mpr
@@ -94,9 +92,30 @@ PRINT:
 
         rcall LCDWrLn1
 
+		;strings from program mem to data mem
+        ldi ZL, low(STRING_BEG_L2<<1)
+		ldi ZH, high(STRING_BEG_L2<<1)
+
+        ;pointing y to address of line2
+        ldi YL, $10
+		ldi YH, $01
+
+		ldi counter, 12
+
+		rcall PRINT2
 
 		ret						; End subroutine
 
+PRINT2:
+
+		 ;load from program memory
+        lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne PRINT2
+
+        rcall LCDWrLn2
+		ret
 CLEAR:
         rcall LCDClr            ;Clear LCD
         ret                     ;End subroutine
@@ -108,8 +127,10 @@ CLEAR:
 ; An example of storing a string. Note the labels before and
 ; after the .DB directive; these can help to access the data
 ;-----------------------------------------------------------
-STRING_BEG:
-.DB		"Paul and Ryan"		; Declaring data in ProgMem
+STRING_BEG_L1:
+.DB		"Paul Lipp"				; Declaring data in ProgMem
+STRING_BEG_L2:
+.DB		"Ryan Muriset"
 STRING_END:
 
 ;***********************************************************
