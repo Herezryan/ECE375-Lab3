@@ -33,17 +33,17 @@
 ;*	Program Initialization
 ;***********************************************************
 INIT:							; The initialization routine
-		ldi	mpr, low(RAMEND)	; Initialize Stack Pointer
-		out SPL, mpr
-		ldi mpr, high(RAMEND)
-		out SPH, mpr
+		ldi		mpr, low(RAMEND)
+		out		SPL, mpr		; Load SPL with low byte of RAMEND
+		ldi		mpr, high(RAMEND)
+		out		SPH, mpr		; Load SPH with high byte of RAMEND
 
 		rcall LCDInit			; Initialize LCD Display
 
-		ldi mpr, $00			; Initialize Port D for input
-		out DDRD, mpr
-		ldi mpr, $FF
-		out PORTD, mpr
+		ldi		mpr, $00		; Set Port D Data Direction Register
+		out		DDRD, mpr		; for input
+		ldi		mpr, $FF		; Initialize Port D Data Register
+		out		PORTD, mpr		; so all Port D inputs are Tri-State
 
 		; NOTE that there is no RET or RJMP from INIT,
 		; this is because the next instruction executed is the
