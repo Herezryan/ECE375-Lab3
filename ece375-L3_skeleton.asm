@@ -72,8 +72,18 @@ MAIN:							; The Main program
 		; Main function design is up to you. Below is an example to brainstorm.
 
 		in mpr, PIND
-		andi mpr, (1<<PD_seven|1<<PD_five|1<<PD_four)
+		andi mpr, (1<<PD_five|1<<PD_four)
+		cpi mpr, (1<<PD_four)
+		brne NAMES
 
+		in mpr, PIND
+		andi mpr, (1<<PD_five|1<<PD_four)
+		cpi mpr, (1<<PD_five)
+		brne CLEAR
+
+		rjmp MAIN
+
+NAMES:
 		lpm mpr, Z+
 		st Y+, mpr
 		dec counter
@@ -97,27 +107,29 @@ MAIN:							; The Main program
 
 		ldi counter, 12
 
-NEXT:
-		;cpi mpr, (1<<PD_seven)		; Check if pd7 is hit
+		rcall NAMES2
+
+		ret
+
+NAMES2:
+			; Check if pd7 is hit
 		lpm mpr, Z+
 		st Y+, mpr
 		dec counter
-		brne NEXT
+		brne NAMES2
 		;wrap around
 
 		rcall LCDWrLn2
-		rjmp MAIN
+		
+		ret
 
-NEXT1:	cpi mpr, (1<<PD_five)
-		brne NEXT2
-		;name and hello world
-		;rcall WORLD
+		
 
-		rjmp MAIN
+CLEAR:	
+		rcall LCDClr
 
-NEXT2:  cpi mpr, (1<<PD_four)
-		brne MAIN
-		rcall CLEAR
+		ret
+		
 
 
 		; Move strings from Program Memory to Data Memory
@@ -138,50 +150,6 @@ NEXT2:  cpi mpr, (1<<PD_four)
 ; Desc: Cut and paste this and fill in the info at the
 ;		beginning of your functions
 ;-----------------------------------------------------------
-CLEAR:	
-		rcall LCDClr
-		out PORTB, mpr
-
-		ret						; End a function with RET
-
-WORLD:
-		;move stuff to data memory
-		;line 1 $0100 - $010F
-		;line 2 $0110 - $011F
-
-		;ldi mpr, 101
-		;ldi XL, low($0100)
-		;ldi XH, high($0100)
-
-		ldi ZL, low(STRING_BEG_L1<<1)
-		ldi ZH, high(STRING_BEG_L1<<1)
-
-		ldi mpr, (1<<7)
-		out PORTB, mpr
-
-		;rcall Bin2ASCII
-
-		;LPM mpr, Z+
-
-		;ldi YL, $00
-		;ldi YH, $01
-		;ld r16, Y+
-		;st Y, r17
-
-		lpm r15, Z+
-		lpm r16, Z+
-
-		ldi YL, $00
-		ldi YH, $01
-
-		st Y+, r16
-
-		rcall LCDWrLn1
-
-		ret
-		;rcall LCDWrLn2
-		
-
 ;***********************************************************
 ;*	Stored Program Data
 ;***********************************************************
@@ -203,4 +171,5 @@ STRING_END_2:
 ;*	Additional Program Includes
 ;***********************************************************
 .include "LCDDriver.asm"		; Include the LCD Driver
+
 
