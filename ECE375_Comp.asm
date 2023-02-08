@@ -78,8 +78,8 @@ NEXT:
 ;-----------------------------------------------------------
 PRINT:	
         ;strings from program mem to data mem
-        ldi ZL, low(STRING_BEG_L2<<1)
-		ldi ZH, high(STRING_BEG_L2<<1)
+        ldi ZL, low(STRING_BEG<<1)
+		ldi ZH, high(STRING_BEG<<1)
 
         ;pointing y to address of line1
         ldi YL, $00
