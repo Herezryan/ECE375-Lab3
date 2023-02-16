@@ -1,7 +1,7 @@
 ;***********************************************************
 ;*	This is the skeleton file for Lab 4 of ECE 375
 ;*
-;*	 Author: Paul Lipp and Ryan Muriset
+;*	 Author: Enter your name
 ;*	   Date: Enter Date
 ;*
 ;***********************************************************
@@ -41,10 +41,6 @@
 INIT:							; The initialization routine
 
 		; Initialize Stack Pointer
-		ldi	mpr, low(RAMEND)	; Initialize Stack Pointer
-		out SPL, mpr
-		ldi mpr, high(RAMEND)
-		out SPH, mpr
 
 		; TODO
 
@@ -61,18 +57,18 @@ MAIN:							; The Main program
 		nop ; Check load ADD16 operands (Set Break point here #1)
 
 		; Call ADD16 function to display its results (calculate FCBA + FFFF)
+		;rcall ADD16
 		nop ; Check ADD16 result (Set Break point here #2)
 
 
-		; Call function to load SUB16 operands
+		;rcall SUB16; Call function to load SUB16 operands
 		nop ; Check load SUB16 operands (Set Break point here #3)
 
 		; Call SUB16 function to display its results (calculate FCB9 - E420)
 		nop ; Check SUB16 result (Set Break point here #4)
 
-
-		; Call function to load MUL24 operands
 		rcall MUL16
+		; Call function to load MUL24 operands
 		nop ; Check load MUL24 operands (Set Break point here #5)
 
 		; Call MUL24 function to display its results (calculate FFFFFF * FFFFFF)
@@ -98,31 +94,59 @@ DONE:	rjmp	DONE			; Create an infinite while loop to signify the
 ;       out bit.
 ;-----------------------------------------------------------
 ADD16:
+		push 	A				; Save A register
+		push	B				; Save B register
+		push	XH				; Save X-ptr
+		push	XL
+		push	YH				; Save Y-ptr
+		push	YL
+		push	ZH				; Save Z-ptr
+		push	ZL
+		; Maintain zero semantics
 		; Load beginning address of first operand into X
 		ldi		XL, low(ADD16_OP1)	; Load low byte of address
 		ldi		XH, high(ADD16_OP1)	; Load high byte of address
 
-		; Load beginning address of second operand into Y
-		ldi		YL, low(ADD16_OP2)	; Load low byte
-		ldi		YH, high(ADD16_OP2)	; Load high byte
+		ldi		YL, low(ADD16_OP2)
+		ldi		YH, high(ADD16_OP2)
 
-		; Load beginning address of result into Z
-		ldi		ZL, low(ADD16_Result)	; Load low byte
-		ldi		ZH, high(ADD16_Result); Load high byte
+		ldi		ZL, low(ADD16_Result)
+		ldi		ZH, high(ADD16_Result)
 
-		; A = R3, B = R4, rlo = R0, rhi = R1, zero = R2
-		ld A, X+
-		ld B, Y
-		adc A, B
-		; store in result
-		; next bit
-		; add next bit ? maybe adc ? 
-		; adc next bit, A, apply previous carry
-		; store in result
+		;OperandA:
+		;	.DW 0xFCBA
+		;OperandB:
+		;	.DW 0xFFFF
 
-		; Execute the function
+		ld		A, X+
+		ld		B, Y+
+		add		A, B
+		st		Z+, A
+		ld		A, X
+		ld		B, Y
+		adc		A, B
+		st		Z+, A
+		brcc	EXIT
+		st		Z, XH
+		EXIT: 
+			pop		ZL
+			pop		ZH
+			pop		YL
+			pop		YH
+			pop		XL
+			pop		XH
+			pop		B
+			pop		A
+			ret
+		; 01 AA A9
+		; a9 aa 01
+		; FCBA
+		; ba fc
+		; FFFF
+		; ff ff
+		; 01 FC B9
+		; B9 FC 01
 
-		ret						; End a function with RET
 
 ;-----------------------------------------------------------
 ; Func: SUB16
@@ -130,7 +154,55 @@ ADD16:
 ;       result. Always subtracts from the bigger values.
 ;-----------------------------------------------------------
 SUB16:
-		; Execute the function here
+		push 	A				; Save A register
+		push	B				; Save B register
+		push	XH				; Save X-ptr
+		push	XL
+		push	YH				; Save Y-ptr
+		push	YL
+		push	ZH				; Save Z-ptr
+		push	ZL
+		; Maintain zero semantics
+		; Load beginning address of first operand into X
+		ldi		XL, low(ADD16_OP2)	; Load low byte of address
+		ldi		XH, high(ADD16_OP2)	; Load high byte of address
+
+		ldi		YL, low(ADD16_OP1)
+		ldi		YH, high(ADD16_OP1)
+
+		ldi		ZL, low(ADD16_Result)
+		ldi		ZH, high(ADD16_Result)
+
+		;OperandA:
+		;	.DW 0xFCBA
+		;OperandB:
+		;	.DW 0xFFFF
+
+		ld		A, X+
+		ld		B, Y+
+		sub		A, B
+		st		Z+, A
+		ld		A, X
+		ld		B, Y
+		sbc		A, B
+		st		Z+, A
+		brcc	EXIT2
+		st		Z, XH
+		EXIT2: 
+			pop		ZL
+			pop		ZH
+			pop		YL
+			pop		YH
+			pop		XL
+			pop		XH
+			pop		B
+			pop		A
+			ret
+
+		; 45 03
+		; 03 45
+
+		; FFFF - FCBA = 345 (0345)
 
 
 		ret						; End a function with RET
@@ -142,7 +214,77 @@ SUB16:
 ;-----------------------------------------------------------
 MUL24:
 ;* - Simply adopting MUL16 ideas to MUL24 will not give you steady results. You should come up with different ideas.
-		; Execute the function here
+		push 	A				; Save A register
+		push	B				; Save B register
+		push	rhi				; Save rhi register
+		push	rlo				; Save rlo register
+		push	zero			; Save zero register
+		push	XH				; Save X-ptr
+		push	XL
+		push	YH				; Save Y-ptr
+		push	YL
+		push	ZH				; Save Z-ptr
+		push	ZL
+		push	oloop			; Save counters
+		push	iloop
+
+		clr		zero			; Maintain zero semantics
+
+		; Set Y to beginning address of B
+		ldi		YL, low(addrB)	; Load low byte
+		ldi		YH, high(addrB)	; Load high byte
+
+		; Set Z to begginning address of resulting Product
+		ldi		ZL, low(LAddrP)	; Load low byte
+		ldi		ZH, high(LAddrP); Load high byte
+
+		; Begin outer for loop
+		ldi		oloop, 3		; Load counter
+MUL16_OLOOP:
+		; Set X to beginning address of A
+		ldi		XL, low(addrA)	; Load low byte
+		ldi		XH, high(addrA)	; Load high byte
+
+		; Begin inner for loop
+		ldi		iloop, 3		; Load counter
+MUL16_ILOOP:
+		ld		A, X+			; Get byte of A operand
+		ld		B, Y			; Get byte of B operand
+		mul		A,B				; Multiply A and B
+		ld		A, Z+			; Get a result byte from memory
+		ld		B, Z+			; Get the next result byte from memory
+		add		rlo, A			; rlo <= rlo + A
+		adc		rhi, B			; rhi <= rhi + B + carry
+		ld		A, Z			; Get a third byte from the result
+		adc		A, zero			; Add carry to A
+		st		Z, A			; Store third byte to memory
+		st		-Z, rhi			; Store second byte to memory
+		st		-Z, rlo			; Store first byte to memory
+		adiw	ZH:ZL, 1		; Z <= Z + 1
+		dec		iloop			; Decrement counter
+		brne	MUL16_ILOOP		; Loop if iLoop != 0					
+		; End inner for loop
+
+		sbiw	ZH:ZL, 2		; Z <= Z - 1
+		adiw	YH:YL, 1		; Y <= Y + 1
+		dec		oloop			; Decrement counter
+		brne	MUL16_OLOOP		; Loop if oLoop != 0
+		; End outer for loop
+
+		pop		iloop			; Restore all registers in reverves order
+		pop		oloop
+		pop		ZL
+		pop		ZH
+		pop		YL
+		pop		YH
+		pop		XL
+		pop		XH
+		pop		zero
+		pop		rlo
+		pop		rhi
+		pop		B
+		pop		A
+		ret						; End a function with RET
 
 
 		ret						; End a function with RET
@@ -229,7 +371,20 @@ MUL16_ILOOP:
 		st		-Z, rlo			; Store first byte to memory
 		adiw	ZH:ZL, 1		; Z <= Z + 1
 		dec		iloop			; Decrement counter
-		brne	MUL16_ILOOP		; Loop if iLoop != 0
+		brne	MUL16_ILOOP		; Loop if iLoop != 0					
+			
+																		; XXXX    XXXX    XXXX
+																		; HIGHER  HIGH    LOW
+																		; FCBA	-> LOW = BA; HIGH = FC
+																		; FFFF	-> LOW = FF; HIGH + FF
+																		; BA x LOW FF -> OUTPUT LOW + CARRY
+																		; (FC x LOW FF) + CARRY -> OUTPUT HIGH
+																		; LOOP 1	Y -> Y HIGH, OUTPUT LOW = OUTPUT HIGH
+																		; BA x HIGH FF -> OUTPUT HIGH + CARRY
+																		; (FC x HIGH FF) + CARRY-> OUTPUT HIGHER
+																		; LOOP 2	Y -> Y HIGHER, OUTPUT LOW = OUTPUT HIGHER
+																		; BA x HIGH FF -> OUTPUT HIGH + CARRY
+																		; (FC x HIGH FF) + CARRY-> OUTPUT HIGHER
 		; End inner for loop
 
 		sbiw	ZH:ZL, 1		; Z <= Z - 1
