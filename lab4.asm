@@ -94,15 +94,6 @@ DONE:	rjmp	DONE			; Create an infinite while loop to signify the
 ;       out bit.
 ;-----------------------------------------------------------
 ADD16:
-		push 	A				; Save A register
-		push	B				; Save B register
-		push	XH				; Save X-ptr
-		push	XL
-		push	YH				; Save Y-ptr
-		push	YL
-		push	ZH				; Save Z-ptr
-		push	ZL
-		; Maintain zero semantics
 		; Load beginning address of first operand into X
 		ldi		XL, low(ADD16_OP1)	; Load low byte of address
 		ldi		XH, high(ADD16_OP1)	; Load high byte of address
@@ -129,14 +120,6 @@ ADD16:
 		brcc	EXIT
 		st		Z, XH
 		EXIT: 
-			pop		ZL
-			pop		ZH
-			pop		YL
-			pop		YH
-			pop		XL
-			pop		XH
-			pop		B
-			pop		A
 			ret
 		; 01 AA A9
 		; a9 aa 01
@@ -154,15 +137,6 @@ ADD16:
 ;       result. Always subtracts from the bigger values.
 ;-----------------------------------------------------------
 SUB16:
-		push 	A				; Save A register
-		push	B				; Save B register
-		push	XH				; Save X-ptr
-		push	XL
-		push	YH				; Save Y-ptr
-		push	YL
-		push	ZH				; Save Z-ptr
-		push	ZL
-		; Maintain zero semantics
 		; Load beginning address of first operand into X
 		ldi		XL, low(ADD16_OP2)	; Load low byte of address
 		ldi		XH, high(ADD16_OP2)	; Load high byte of address
@@ -172,12 +146,10 @@ SUB16:
 
 		ldi		ZL, low(ADD16_Result)
 		ldi		ZH, high(ADD16_Result)
-
 		;OperandA:
 		;	.DW 0xFCBA
 		;OperandB:
 		;	.DW 0xFFFF
-
 		ld		A, X+
 		ld		B, Y+
 		sub		A, B
@@ -189,24 +161,10 @@ SUB16:
 		brcc	EXIT2
 		st		Z, XH
 		EXIT2: 
-			pop		ZL
-			pop		ZH
-			pop		YL
-			pop		YH
-			pop		XL
-			pop		XH
-			pop		B
-			pop		A
 			ret
-
 		; 45 03
 		; 03 45
-
 		; FFFF - FCBA = 345 (0345)
-
-
-		ret						; End a function with RET
-
 ;-----------------------------------------------------------
 ; Func: MUL24
 ; Desc: Multiplies two 24-bit numbers and generates a 48-bit
@@ -231,23 +189,23 @@ MUL24:
 		clr		zero			; Maintain zero semantics
 
 		; Set Y to beginning address of B
-		ldi		YL, low(addrB)	; Load low byte
-		ldi		YH, high(addrB)	; Load high byte
+		ldi		YL, low(MUL24_OP1)	; Load low byte
+		ldi		YH, high(MUL24_OP1)	; Load high byte
 
 		; Set Z to begginning address of resulting Product
-		ldi		ZL, low(LAddrP)	; Load low byte
-		ldi		ZH, high(LAddrP); Load high byte
+		ldi		ZL, low(MUL24_Result)	; Load low byte
+		ldi		ZH, high(MUL24_Result); Load high byte
 
 		; Begin outer for loop
 		ldi		oloop, 3		; Load counter
-MUL16_OLOOP:
+MUL24_OLOOP:
 		; Set X to beginning address of A
-		ldi		XL, low(addrA)	; Load low byte
-		ldi		XH, high(addrA)	; Load high byte
+		ldi		XL, low(MUL24_OP2)	; Load low byte
+		ldi		XH, high(MUL24_OP2)	; Load high byte
 
 		; Begin inner for loop
 		ldi		iloop, 3		; Load counter
-MUL16_ILOOP:
+MUL24_ILOOP:
 		ld		A, X+			; Get byte of A operand
 		ld		B, Y			; Get byte of B operand
 		mul		A,B				; Multiply A and B
@@ -262,13 +220,13 @@ MUL16_ILOOP:
 		st		-Z, rlo			; Store first byte to memory
 		adiw	ZH:ZL, 1		; Z <= Z + 1
 		dec		iloop			; Decrement counter
-		brne	MUL16_ILOOP		; Loop if iLoop != 0					
+		brne	MUL24_ILOOP		; Loop if iLoop != 0					
 		; End inner for loop
 
 		sbiw	ZH:ZL, 2		; Z <= Z - 1
 		adiw	YH:YL, 1		; Y <= Y + 1
 		dec		oloop			; Decrement counter
-		brne	MUL16_OLOOP		; Loop if oLoop != 0
+		brne	MUL24_OLOOP		; Loop if oLoop != 0
 		; End outer for loop
 
 		pop		iloop			; Restore all registers in reverves order
@@ -477,7 +435,28 @@ ADD16_OP2:
 ADD16_Result:
 		.byte 3				; allocate three bytes for ADD16 result
 
+.org	$0130				; data memory allocation for operands
+SUB16_OP1:
+		.byte 2				; allocate two bytes for first operand of SUB16
+SUB16_OP2:
+		.byte 2				; allocate two bytes for second operand of SUB16
+
+.org	$0140				; data memory allocation for results
+SUB16_Result:
+		.byte 3				; allocate three bytes for SUB16 result
+
+.org	$0150				; data memory allocation for operands
+MUL24_OP1:
+		.byte 3				; allocate two bytes for first operand of MUL24
+MUL24_OP2:
+		.byte 3				; allocate two bytes for second operand of MUL24	
+
+.org	$0160				; data memory allocation for results
+MUL24_Result:
+		.byte 5				; allocate three bytes for MUL24 result
+
 ;***********************************************************
 ;*	Additional Program Includes
 ;***********************************************************
 ; There are no additional file includes for this program
+
