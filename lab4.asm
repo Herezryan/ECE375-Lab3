@@ -1,8 +1,8 @@
 ;***********************************************************
 ;*	This is the skeleton file for Lab 4 of ECE 375
 ;*
-;*	 Author: Enter your name
-;*	   Date: Enter Date
+;*	 Author: Paul Lipp and Ryan Muriset
+;*	   Date: 2023-02-10
 ;*
 ;***********************************************************
 
@@ -75,18 +75,19 @@ MAIN:							; The Main program
 		nop ; Check SUB16 result (Set Break point here #4)
 
 		; Call function to load MUL24 operands
-		rcall MUL24_PM
+		;rcall MUL24_PM
 		nop ; Check load MUL24 operands (Set Break point here #5)
 
 		; Call MUL24 function to display its results (calculate FFFFFF * FFFFFF) ; FF FF FE 00 00 01
-		rcall MUL24
+		;rcall MUL24
 		nop ; Check MUL24 result (Set Break point here #6)
 
 		; Setup the COMPOUND function direct test
 		nop ; Check load COMPOUND operands (Set Break point here #7)
 
 		; Call the COMPOUND function
-		nop ; Check COMPOUND result (Set Break point here #8)
+		rcall COMPOUND
+		nop ; Check COMPOUND result (Set Break point here #8)					; FC A8 CE E9 
 
 DONE:	rjmp	DONE			; Create an infinite while loop to signify the
 								; end of the program.
@@ -218,12 +219,18 @@ MUL24_ILOOP:
 		ld		B, Y			; Get byte of B operand
 		mul		A,B				; Multiply A and B
 		ld		A, Z+			; Get a result byte from memory
-		ld		B, Z+			; Get the next result byte from memory
+		ld		B, Z+			; Get the next result byte from memory		; FF x FF = FE01	ld F, ld F, MUL FxF = E1, ld Z, ld Z, add rlo, A (E1), adc rhi(E) [E1], 
 		add		rlo, A			; rlo <= rlo + A
 		adc		rhi, B			; rhi <= rhi + B + carry
-		ld		A, Z			; Get a third byte from the result
+		; -------------------------------
+		ld		A, Z+			; Get a third byte from the result
 		adc		A, zero			; Add carry to A
-		st		Z, A			; Store third byte to memory
+		ld		B, Z			; Get a third byte from the result
+		adc		B, zero			; Add carry to A
+		; -------------------------------
+		st		Z, B			; Store third byte to memory
+		st		-Z, A			; Store third byte to memory
+		; -------------------------------
 		st		-Z, rhi			; Store second byte to memory
 		st		-Z, rlo			; Store first byte to memory	
 		adiw	ZH:ZL, 1		; Z <= Z + 1
@@ -256,22 +263,26 @@ MUL24_ILOOP:
 ; Func: COMPOUND
 ; Desc: Computes the compound expression ((G - H) + I)^2
 ;       by making use of SUB16, ADD16, and MUL24.
-;
+;		
 ;       D, E, and F are declared in program memory, and must
 ;       be moved into data memory for use as input operands.
 ;
 ;       All result bytes should be cleared before beginning.
 ;-----------------------------------------------------------
 COMPOUND:
-
+		; WERE ASSUMING G = D, H = E, F = I
 		; Setup SUB16 with operands G and H
+		rcall COMPOUND_PM_SUB
 		; Perform subtraction to calculate G - H
-
+		rcall SUB16
 		; Setup the ADD16 function with SUB16 result and operand I
+		rcall COMPOUND_PM_ADD
 		; Perform addition next to calculate (G - H) + I
-
+		rcall ADD16
 		; Setup the MUL24 function with ADD16 result as both operands
+		rcall COMPOUND_PM_MUL
 		; Perform multiplication to calculate ((G - H) + I)^2
+		rcall MUL24
 
 		ret						; End a function with RET
 
@@ -495,6 +506,99 @@ MUL24_PM:
 
 		ret
 
+COMPOUND_PM_SUB:
+		ldi ZL, low(OperandG<<1)
+		ldi ZH, high(OperandG<<1)
+		
+		ldi YL, $30
+		ldi YH, $01
+		
+		lpm mpr, Z+
+		st Y+, mpr
+		
+		lpm mpr, Z
+		st Y, mpr 
+
+		; ------------------------
+
+		ldi ZL, low(OperandH<<1)
+		ldi ZH, high(OperandH<<1)
+		
+		ldi YL, $32
+		ldi YH, $01
+		
+		lpm mpr, Z+
+		st Y+, mpr
+		
+		lpm mpr, Z
+		st Y, mpr
+
+		ret
+
+COMPOUND_PM_ADD:
+		ldi ZL, $40
+		ldi ZH, $01
+		
+		ldi YL, $10
+		ldi YH, $01
+		
+		ld mpr, Z+
+		st Y+, mpr
+		
+		ld mpr, Z
+		st Y, mpr 
+
+		; ------------------------
+
+		ldi ZL, low(OperandI<<1)
+		ldi ZH, high(OperandI<<1)
+		
+		ldi YL, $12
+		ldi YH, $01
+		
+		lpm mpr, Z+
+		st Y+, mpr
+		
+		lpm mpr, Z
+		st Y, mpr
+
+		ret
+
+COMPOUND_PM_MUL:
+		ldi ZL, $20
+		ldi ZH, $01
+		
+		ldi YL, $60
+		ldi YH, $01
+		
+		ld mpr, Z+
+		st Y+, mpr
+
+		ld mpr, Z+
+		st Y+, mpr
+		
+		ld mpr, Z
+		st Y, mpr
+
+		; ------------------------
+
+		ldi ZL, $20
+		ldi ZH, $01
+		
+		ldi YL, $64
+		ldi YH, $01
+		
+		ld mpr, Z+
+		st Y+, mpr
+
+		ld mpr, Z+
+		st Y+, mpr
+		
+		ld mpr, Z
+		st Y, mpr
+
+		ret
+
 ;***********************************************************
 ;*	Stored Program Data
 ;*	Do not  section.
@@ -558,7 +662,7 @@ SUB16_OP2:
 
 .org	$0140				; data memory allocation for results
 SUB16_Result:
-		.byte 3				; allocate three bytes for SUB16 result
+		.byte 2				; allocate three bytes for SUB16 result
 
 .org	$0160				; data memory allocation for operands
 MUL24_OP1:
@@ -569,6 +673,14 @@ MUL24_OP2:
 .org	$0180				; data memory allocation for results
 MUL24_Result:
 		.byte 6				; allocate three bytes for MUL24 result
+
+.org	$0220
+COMPOUND_OP1:
+		.byte 2
+COMPOUND_OP2:
+		.byte 2
+COMPOUND_OP3:
+		.byte 2
 
 ;***********************************************************
 ;*	Additional Program Includes
