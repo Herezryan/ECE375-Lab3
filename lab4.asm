@@ -58,28 +58,28 @@ INIT:							; The initialization routine
 MAIN:							; The Main program
 
 		; Call function to load ADD16 operands
-;		rcall ADD16_PM
+		rcall ADD16_PM
 		nop ; Check load ADD16 operands (Set Break point here #1)
 
 		; Call ADD16 function to display its results (calculate FCBA + FFFF)	; 1FCB9
-;		rcall ADD16
+		rcall ADD16
 		nop ; Check ADD16 result (Set Break point here #2)
 
 
 		; Call function to load SUB16 operands
-;		rcall SUB16_PM
+		rcall SUB16_PM
 		nop ; Check load SUB16 operands (Set Break point here #3)
 
 		; Call SUB16 function to display its results (calculate FCB9 - E420)q	; 1899
-;		rcall SUB16
+		rcall SUB16
 		nop ; Check SUB16 result (Set Break point here #4)
 
 		; Call function to load MUL24 operands
-		;rcall MUL24_PM
+		rcall MUL24_PM
 		nop ; Check load MUL24 operands (Set Break point here #5)
 
 		; Call MUL24 function to display its results (calculate FFFFFF * FFFFFF) ; FF FF FE 00 00 01
-		;rcall MUL24
+		rcall MUL24
 		nop ; Check MUL24 result (Set Break point here #6)
 
 		; Setup the COMPOUND function direct test
@@ -107,38 +107,24 @@ ADD16:
 		ldi		XL, low(ADD16_OP1)	; Load low byte of address
 		ldi		XH, high(ADD16_OP1)	; Load high byte of address
 
-		ldi		YL, low(ADD16_OP2)
-		ldi		YH, high(ADD16_OP2)
+		ldi		YL, low(ADD16_OP2)	; load low byte of second operand into Y
+		ldi		YH, high(ADD16_OP2) ; load high byte of second operand into Y
 
-		ldi		ZL, low(ADD16_Result)
-		ldi		ZH, high(ADD16_Result)
+		ldi		ZL, low(ADD16_Result)  ; load low byte of result into Z
+		ldi		ZH, high(ADD16_Result) ; load high byte of result into Z
 
-		;OperandA:
-		;	.DW 0xFCBA
-		;OperandB:
-		;	.DW 0xFFFF
-
-		ld		A, X+
-		ld		B, Y+
-		add		A, B
-		st		Z+, A
-		ld		A, X
-		ld		B, Y
-		adc		A, B
-		st		Z+, A
-		brcc	EXIT
-		st		Z, XH
+		ld		A, X+				; load A into X, increment X
+		ld		B, Y+				; load B into Y, increment Y
+		add		A, B				; add A and B
+		st		Z+, A				; Store low byte of result
+		ld		A, X				; Load next operand byte
+		ld		B, Y				; load next operand byte
+		adc		A, B				; add with carry
+		st		Z+, A				; store high byte of result
+		brcc	EXIT				; exit if carry cleared
+		st		Z, XH				; Add carry if necessary
 		EXIT: 
 			ret
-		; 01 AA A9
-		; a9 aa 01
-		; FCBA
-		; ba fc
-		; FFFF
-		; ff ff
-		; 01 FC B9
-		; B9 FC 01
-
 
 ;-----------------------------------------------------------
 ; Func: SUB16
@@ -150,15 +136,12 @@ SUB16:
 		ldi		XL, low(SUB16_OP1)	; Load low byte of address
 		ldi		XH, high(SUB16_OP1)	; Load high byte of address
 
-		ldi		YL, low(SUB16_OP2)
-		ldi		YH, high(SUB16_OP2)
+		ldi		YL, low(SUB16_OP2)  ; load low byte of second operand into Y
+		ldi		YH, high(SUB16_OP2) ; load high byte of second operand into Y
 
-		ldi		ZL, low(SUB16_Result)
-		ldi		ZH, high(SUB16_Result)
-		;OperandA:
-		;	.DW 0xFCBA
-		;OperandB:
-		;	.DW 0xFFFF
+		ldi		ZL, low(SUB16_Result) ; load low byte of result into Z
+		ldi		ZH, high(SUB16_Result) ; load high byte of result into Z
+
 		ld		A, X+
 		ld		B, Y+
 		sub		A, B
@@ -169,11 +152,9 @@ SUB16:
 		st		Z+, A
 		brcc	EXIT2
 		st		Z, XH
+		; same logic as add, just with subtract for low byte and subtract with carry for high byte
 		EXIT2: 
 			ret
-		; 45 03
-		; 03 45
-		; FFFF - FCBA = 345 (0345)
 ;-----------------------------------------------------------
 ; Func: MUL24
 ; Desc: Multiplies two 24-bit numbers and generates a 48-bit
@@ -213,7 +194,7 @@ MUL24_OLOOP:
 		ldi		XH, high(MUL24_OP1)	; Load high byte
 
 		; Begin inner for loop
-		ldi		iloop, 3		; Load counter
+		ldi		iloop, 3		; Load counter, 3 as 24 bits
 MUL24_ILOOP:
 		ld		A, X+			; Get byte of A operand
 		ld		B, Y			; Get byte of B operand
@@ -225,10 +206,10 @@ MUL24_ILOOP:
 		; -------------------------------
 		ld		A, Z+			; Get a third byte from the result
 		adc		A, zero			; Add carry to A
-		ld		B, Z			; Get a third byte from the result
+		ld		B, Z			; Get a fourth byte from the result
 		adc		B, zero			; Add carry to A
 		; -------------------------------
-		st		Z, B			; Store third byte to memory
+		st		Z, B			; Store fourth byte to memory
 		st		-Z, A			; Store third byte to memory
 		; -------------------------------
 		st		-Z, rhi			; Store second byte to memory
@@ -238,7 +219,7 @@ MUL24_ILOOP:
 		brne	MUL24_ILOOP		; Loop if iLoop != 0					
 		; End inner for loop
 
-		sbiw	ZH:ZL, 2		; Z <= Z - 1
+		sbiw	ZH:ZL, 2		; Z <= Z - 2
 		adiw	YH:YL, 1		; Y <= Y + 1
 		dec		oloop			; Decrement counter
 		brne	MUL24_OLOOP		; Loop if oLoop != 0
@@ -383,18 +364,10 @@ MUL16_ILOOP:
 		ret						; End a function with RET
 
 ;-----------------------------------------------------------
-; Func: Template function header
-; Desc: Cut and paste this and fill in the info at the
-;       beginning of your functions
+; Func: ADD16_PM
+; Desc: This function moves the Operands A and B from PM 
+;		into DM for the ADD16 Function
 ;-----------------------------------------------------------
-FUNC:							; Begin a function with a label
-		; Save variable by pushing them to the stack
-
-		; Execute the function here
-
-		; Restore variable by popping them from the stack in reverse order
-		ret						; End a function with RET
-
 
 
 ADD16_PM:
@@ -424,6 +397,12 @@ ADD16_PM:
 
 		ret
 
+;-----------------------------------------------------------
+; Func: SUB16_PM
+; Desc: This function moves the Operands C and D from PM 
+;		into DM for the SUB16 Function
+;-----------------------------------------------------------
+
 SUB16_PM:
 		ldi ZL, low(OperandC<<1)
 		ldi ZH, high(OperandC<<1)
@@ -450,6 +429,12 @@ SUB16_PM:
 		st Y, mpr
 
 		ret
+
+;-----------------------------------------------------------
+; Func: MUL24_PM
+; Desc: This function moves the Operands E1, E2 and F1, F2 from PM 
+;		into DM for the MUL24 Function
+;-----------------------------------------------------------
 
 MUL24_PM:
 		ldi ZL, low(OperandE1<<1)
@@ -506,6 +491,12 @@ MUL24_PM:
 
 		ret
 
+;-----------------------------------------------------------
+; Func: COMPOUND_PM_SUB
+; Desc: This function moves the Operands G and H from PM into
+;       the right addresses in DM for the SUB16 function to work
+;-----------------------------------------------------------
+
 COMPOUND_PM_SUB:
 		ldi ZL, low(OperandG<<1)
 		ldi ZH, high(OperandG<<1)
@@ -535,6 +526,13 @@ COMPOUND_PM_SUB:
 
 		ret
 
+;-----------------------------------------------------------
+; Func: COMPOUND_PM_ADD
+; Desc: This function moves the Operand I and the result from 
+;		the previous SUB16 function call from PM into
+;       the right addresses in DM for the ADD16 function to work
+;-----------------------------------------------------------
+
 COMPOUND_PM_ADD:
 		ldi ZL, $40
 		ldi ZH, $01
@@ -563,6 +561,13 @@ COMPOUND_PM_ADD:
 		st Y, mpr
 
 		ret
+
+;-----------------------------------------------------------
+; Func: COMPOUND_PM_MUL
+; Desc: This function grabs the result from the prior ADD16 
+;		function call and loads it into DM where the MUl24
+;		operands are pointing at, so the MUL24 function works
+;-----------------------------------------------------------
 
 COMPOUND_PM_MUL:
 		ldi ZL, $20
@@ -686,4 +691,5 @@ COMPOUND_OP3:
 ;*	Additional Program Includes
 ;***********************************************************
 ; There are no additional file includes for this program
+
 
