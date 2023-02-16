@@ -17,6 +17,7 @@
 .def	zero = r2				; Zero register, set to zero in INIT, useful for calculations
 .def	A = r3					; A variable
 .def	B = r4					; Another variable
+.def	counter = r19
 
 .def	oloop = r17				; Outer Loop Counter
 .def	iloop = r18				; Inner Loop Counter
@@ -41,7 +42,10 @@
 INIT:							; The initialization routine
 
 		; Initialize Stack Pointer
-
+		ldi	mpr, low(RAMEND)	; Initialize Stack Pointer
+		out SPL, mpr
+		ldi mpr, high(RAMEND)
+		out SPH, mpr
 		; TODO
 
 		clr		zero			; Set the zero register to zero, maintain
@@ -54,24 +58,28 @@ INIT:							; The initialization routine
 MAIN:							; The Main program
 
 		; Call function to load ADD16 operands
+;		rcall ADD16_PM
 		nop ; Check load ADD16 operands (Set Break point here #1)
 
-		; Call ADD16 function to display its results (calculate FCBA + FFFF)
-		;rcall ADD16
+		; Call ADD16 function to display its results (calculate FCBA + FFFF)	; 1FCB9
+;		rcall ADD16
 		nop ; Check ADD16 result (Set Break point here #2)
 
 
-		;rcall SUB16; Call function to load SUB16 operands
+		; Call function to load SUB16 operands
+;		rcall SUB16_PM
 		nop ; Check load SUB16 operands (Set Break point here #3)
 
-		; Call SUB16 function to display its results (calculate FCB9 - E420)
+		; Call SUB16 function to display its results (calculate FCB9 - E420)q	; 1899
+;		rcall SUB16
 		nop ; Check SUB16 result (Set Break point here #4)
 
-		rcall MUL16
 		; Call function to load MUL24 operands
+		rcall MUL24_PM
 		nop ; Check load MUL24 operands (Set Break point here #5)
 
-		; Call MUL24 function to display its results (calculate FFFFFF * FFFFFF)
+		; Call MUL24 function to display its results (calculate FFFFFF * FFFFFF) ; FF FF FE 00 00 01
+		rcall MUL24
 		nop ; Check MUL24 result (Set Break point here #6)
 
 		; Setup the COMPOUND function direct test
@@ -138,14 +146,14 @@ ADD16:
 ;-----------------------------------------------------------
 SUB16:
 		; Load beginning address of first operand into X
-		ldi		XL, low(ADD16_OP2)	; Load low byte of address
-		ldi		XH, high(ADD16_OP2)	; Load high byte of address
+		ldi		XL, low(SUB16_OP1)	; Load low byte of address
+		ldi		XH, high(SUB16_OP1)	; Load high byte of address
 
-		ldi		YL, low(ADD16_OP1)
-		ldi		YH, high(ADD16_OP1)
+		ldi		YL, low(SUB16_OP2)
+		ldi		YH, high(SUB16_OP2)
 
-		ldi		ZL, low(ADD16_Result)
-		ldi		ZH, high(ADD16_Result)
+		ldi		ZL, low(SUB16_Result)
+		ldi		ZH, high(SUB16_Result)
 		;OperandA:
 		;	.DW 0xFCBA
 		;OperandB:
@@ -189,8 +197,8 @@ MUL24:
 		clr		zero			; Maintain zero semantics
 
 		; Set Y to beginning address of B
-		ldi		YL, low(MUL24_OP1)	; Load low byte
-		ldi		YH, high(MUL24_OP1)	; Load high byte
+		ldi		YL, low(MUL24_OP2)	; Load low byte
+		ldi		YH, high(MUL24_OP2)	; Load high byte
 
 		; Set Z to begginning address of resulting Product
 		ldi		ZL, low(MUL24_Result)	; Load low byte
@@ -200,8 +208,8 @@ MUL24:
 		ldi		oloop, 3		; Load counter
 MUL24_OLOOP:
 		; Set X to beginning address of A
-		ldi		XL, low(MUL24_OP2)	; Load low byte
-		ldi		XH, high(MUL24_OP2)	; Load high byte
+		ldi		XL, low(MUL24_OP1)	; Load low byte
+		ldi		XH, high(MUL24_OP1)	; Load high byte
 
 		; Begin inner for loop
 		ldi		iloop, 3		; Load counter
@@ -217,7 +225,7 @@ MUL24_ILOOP:
 		adc		A, zero			; Add carry to A
 		st		Z, A			; Store third byte to memory
 		st		-Z, rhi			; Store second byte to memory
-		st		-Z, rlo			; Store first byte to memory
+		st		-Z, rlo			; Store first byte to memory	
 		adiw	ZH:ZL, 1		; Z <= Z + 1
 		dec		iloop			; Decrement counter
 		brne	MUL24_ILOOP		; Loop if iLoop != 0					
@@ -242,9 +250,6 @@ MUL24_ILOOP:
 		pop		rhi
 		pop		B
 		pop		A
-		ret						; End a function with RET
-
-
 		ret						; End a function with RET
 
 ;-----------------------------------------------------------
@@ -380,6 +385,116 @@ FUNC:							; Begin a function with a label
 		ret						; End a function with RET
 
 
+
+ADD16_PM:
+		ldi ZL, low(OperandA<<1)
+		ldi ZH, high(OperandA<<1)
+
+		ldi YL, $10
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		ldi ZL, low(OperandB<<1)
+		ldi ZH, high(OperandB<<1)
+
+		ldi YL, $12
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		ret
+
+SUB16_PM:
+		ldi ZL, low(OperandC<<1)
+		ldi ZH, high(OperandC<<1)
+
+		ldi YL, $30
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		ldi ZL, low(OperandD<<1)
+		ldi ZH, high(OperandD<<1)
+
+		ldi YL, $32
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		ret
+
+MUL24_PM:
+		ldi ZL, low(OperandE1<<1)
+		ldi ZH, high(OperandE1<<1)
+
+		ldi YL, $60
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		;------------------------
+		ldi ZL, low(OperandE2<<1)
+		ldi ZH, high(OperandE2<<1)
+
+		ldi YL, $62
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		;--------------------------------------------------------
+		ldi ZL, low(OperandF1<<1)
+		ldi ZH, high(OperandF1<<1)
+
+		ldi YL, $64
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		;------------------------
+		
+		ldi ZL, low(OperandF2<<1)
+		ldi ZH, high(OperandF2<<1)
+
+		ldi YL, $66
+		ldi YH, $01
+
+		lpm mpr, Z+
+		st Y+, mpr
+
+		lpm mpr, Z
+		st Y, mpr
+
+		ret
+
 ;***********************************************************
 ;*	Stored Program Data
 ;*	Do not  section.
@@ -445,15 +560,15 @@ SUB16_OP2:
 SUB16_Result:
 		.byte 3				; allocate three bytes for SUB16 result
 
-.org	$0150				; data memory allocation for operands
+.org	$0160				; data memory allocation for operands
 MUL24_OP1:
-		.byte 3				; allocate two bytes for first operand of MUL24
+		.byte 4				; allocate two bytes for first operand of MUL24
 MUL24_OP2:
-		.byte 3				; allocate two bytes for second operand of MUL24	
+		.byte 4				; allocate two bytes for second operand of MUL24	
 
-.org	$0160				; data memory allocation for results
+.org	$0180				; data memory allocation for results
 MUL24_Result:
-		.byte 5				; allocate three bytes for MUL24 result
+		.byte 6				; allocate three bytes for MUL24 result
 
 ;***********************************************************
 ;*	Additional Program Includes
