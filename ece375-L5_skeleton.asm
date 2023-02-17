@@ -55,6 +55,9 @@ INIT:							; The initialization routine
 		out		DDRD, mpr		; for input
 		ldi		mpr, $FF		; Initialize Port D Data Register
 		out		PORTD, mpr		; so all Port D inputs are Tri-State
+		; Initialize TekBot Forward Movement
+		ldi		mpr, MovFwd		; Load Move Forward Command
+		out		PORTB, mpr		; Send command to motors
 		; Initialize external interrupts
 			; Set the Interrupt Sense Control to falling edge
 
