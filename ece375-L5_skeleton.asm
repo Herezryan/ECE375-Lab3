@@ -41,11 +41,20 @@
 ;***********************************************************
 INIT:							; The initialization routine
 		; Initialize Stack Pointer
-
+		ldi		mpr, low(RAMEND)
+		out		SPL, mpr		; Load SPL with low byte of RAMEND
+		ldi		mpr, high(RAMEND)
+		out		SPH, mpr		; Load SPH with high byte of RAMEND
 		; Initialize Port B for output
-
+		ldi		mpr, $FF		; Set Port B Data Direction Register
+		out		DDRB, mpr		; for output
+		ldi		mpr, $00		; Initialize Port B Data Register
+		out		PORTB, mpr		; so all Port B outputs are low
 		; Initialize Port D for input
-
+		ldi		mpr, $00		; Set Port D Data Direction Register
+		out		DDRD, mpr		; for input
+		ldi		mpr, $FF		; Initialize Port D Data Register
+		out		PORTD, mpr		; so all Port D inputs are Tri-State
 		; Initialize external interrupts
 			; Set the Interrupt Sense Control to falling edge
 
