@@ -16,6 +16,13 @@
 .equ	WskrR = 0				; Right Whisker Input Bit
 .equ	WskrL = 1				; Left Whisker Input Bit
 
+.equ	EngEnR = 5				; Right Engine Enable Bit
+.equ	EngEnL = 6				; Left Engine Enable Bit
+.equ	EngDirR = 4				; Right Engine Direction Bit
+.equ	EngDirL = 7				; Left Engine Direction Bit
+
+.equ	MovFwd = (1<<EngDirR|1<<EngDirL)	; Move Forward Command
+
 ;***********************************************************
 ;*	Start of Code Segment
 ;***********************************************************
