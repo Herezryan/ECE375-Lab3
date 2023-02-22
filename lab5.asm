@@ -39,10 +39,13 @@
 
 		; Set up interrupt vectors for any interrupts being used
 
-		; This is just an example:
-;.org	$002E					; Analog Comparator IV
-;		rcall	HandleAC		; Call function to handle interrupt
-;		reti					; Return from interrupt
+.org	$0002
+		rcall HandleINT0		; Handle INT0
+		reti
+
+.org	$0004
+		rcall HandleINT1		; Handle INT1
+		reti					; Return from interrupt
 
 .org	$0056					; End of Interrupt Vectors
 
