@@ -228,4 +228,4 @@ FUNC:							; Begin a function with a label
 ;***********************************************************
 ;*	Additional Program Includes
 ;***********************************************************
-.include LCDDriver.asm
+.include "LCDDriver.asm"
