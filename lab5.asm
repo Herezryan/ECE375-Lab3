@@ -108,7 +108,7 @@ MAIN:							; The Main program
 HandleINT0:
 		cli				; disable interrupts
 		rcall HitRight
-		ldi mpr, $01
+		ldi mpr, $0B
 		out EIFR, mpr
 		sei				; re-enable interrupts
 
@@ -117,7 +117,7 @@ HandleINT0:
 HandleINT1:
 		cli				; disable interrupts
 		rcall HitLeft
-		ldi mpr, $02
+		ldi mpr, $0B
 		out EIFR, mpr
 		sei				; re-enble interrupts
 
