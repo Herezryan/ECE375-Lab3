@@ -39,13 +39,22 @@
 
 		; Set up interrupt vectors for any interrupts being used
 
+		; This is just an example:
+;.org	$002E					; Analog Comparator IV
+;		rcall	HandleAC		; Call function to handle interrupt
+;		reti					; Return from interrupt
+
 .org	$0002
 		rcall HandleINT0		; Handle INT0
 		reti
 
 .org	$0004
 		rcall HandleINT1		; Handle INT1
-		reti					; Return from interrupt
+		reti	
+		
+.org	$0008
+		rcall HandleINT3
+		reti	
 
 .org	$0056					; End of Interrupt Vectors
 
@@ -76,7 +85,19 @@ INIT:							; The initialization routine
 		ldi		mpr, $FF		; Initialize Port D Data Register
 		out		PORTD, mpr
 
-		rcall LCDClear			; Clear clutter 
+		rcall LCDClr			; Clear clutter 
+
+		; Testing LCDWrLn1
+
+		ldi YL, $00
+		ldi YH, $01
+
+		ldi mpr, $02
+		st Y+, mpr
+
+		rcall LCDWrLn1
+
+		; End Testing -- Delete Later
 
 		; Initialize external interrupts
 		ldi mpr, 0b10001010	; Set the Interrupt Sense Control to falling edge
@@ -117,6 +138,15 @@ HandleINT0:
 HandleINT1:
 		cli				; disable interrupts
 		rcall HitLeft
+		ldi mpr, $0B
+		out EIFR, mpr
+		sei				; re-enble interrupts
+
+		ret
+
+HandleINT3:
+		cli				; disable interrupts
+		rcall LCDClr
 		ldi mpr, $0B
 		out EIFR, mpr
 		sei				; re-enble interrupts
@@ -229,3 +259,7 @@ FUNC:							; Begin a function with a label
 ;*	Additional Program Includes
 ;***********************************************************
 .include "LCDDriver.asm"
+
+;***********************************************************
+; EOF
+;***********************************************************
