@@ -73,8 +73,8 @@ INIT:							; The initialization routine
 
 		rcall LCDInit			; Initialize LCD 
 
-		ldi		ascii, 0b00000000
-		ldi		asciiT, 0b00000000
+		ldi		ascii, 0b00000000	; load 0 into ascii
+		ldi		asciiT, 0b00000000	; load 0 into asciiT
 
 		; Initialize Port B for output
 
@@ -119,102 +119,129 @@ MAIN:							; The Main program
 ;*	Functions and Subroutines
 ;***********************************************************
 
+;-----------------------------------------------------------
+; Func: HandleINT0
+; Desc: Handler function for Interrupt 0 (Push Button 4)
+;-----------------------------------------------------------
 HandleINT0:
 		cli				; disable interrupts
-		rcall HitRight
-		ldi mpr, $0B
-		out EIFR, mpr
+		rcall HitRight	; call hit right
+		ldi mpr, $0B	; set mpr to 1011
+		out EIFR, mpr	; clear all flags in EIFR
 		sei				; re-enable interrupts
 
 		ret
 
+;-----------------------------------------------------------
+; Func: HandleINT1
+; Desc: Handler function for Interrupt 1 (Push Button 5)
+;-----------------------------------------------------------
 HandleINT1:
 		cli				; disable interrupts
 		rcall HitLeft
-		ldi mpr, $0B
-		out EIFR, mpr
+		ldi mpr, $0B	; set mpr to 1011
+		out EIFR, mpr	; clear all flags in EIFR to avoid queueing
 		sei				; re-enble interrupts
 
 		ret
 
+;-----------------------------------------------------------
+; Func: HandleINT3
+; Desc: Handler function for Interrupt 3 (Push Button 6)
+;-----------------------------------------------------------
 HandleINT3:
 		cli				; disable interrupts
 		rcall ResetLCD	; reset to 0's on LCD
-		ldi mpr, $0B
-		out EIFR, mpr
+		ldi mpr, $0B	; set mpr to 1011 (INT 0, INT1, INT3)
+		out EIFR, mpr	; clear all flags in EIFR
 		sei				; re-enble interrupts
 
 		ret
 
+;-----------------------------------------------------------
+; Func: ResetLCD
+; Desc: Clears LCD and writes 0 to line 1 and 2 of LCD
+;		Also resets counters ascii and asciiT to 0
+;-----------------------------------------------------------
 ResetLCD:
-		rcall LCDClr
+		rcall LCDClr		; clear LCD
 
-		ldi YL, $00
+		ldi YL, $00			; set Y to address of line 1
 		ldi YH, $01
 
-		ldi mpr, 0b00000000
-		st Y+, mpr
+		ldi mpr, 0b00000000	; load 0 into mpr
+		st Y+, mpr			; store 0 in line 1 address
 
-		rcall LCDWrLn1
+		rcall LCDWrLn1		; write line 1
 
 		; --------------------------
 
-		ldi YL, $10
+		ldi YL, $10			; set Y to address of line 2
 		ldi YH, $01
 
-		ldi mpr, 0b00000000
-		st Y+, mpr
+		ldi mpr, 0b00000000 ; load 0 into mpr
+		st Y+, mpr			; store 0 in line 2 address
 		
-		rcall LCDWrLn2
+		rcall LCDWrLn2		; write line 2
 
-		ldi ascii, 0b00000000
+		ldi ascii, 0b00000000	; reset line 1 counter and line 2 counter to 0
 		ldi asciiT, 0b00000000
 
 		ret
 
+;-----------------------------------------------------------
+; Func: IncreaseRight
+; Desc: Increases the counter for line 1 (hit right routine)
+;		writes updated value to LCD
+;-----------------------------------------------------------
 IncreaseRight:
 		rcall LCDClr
 
-		inc ascii
+		inc ascii			; increment counter for line 1
 
-		ldi XL, $00
+		ldi XL, $00			; set X to address of line 1
 		ldi XH, $01
 
-		mov mpr, ascii
+		mov mpr, ascii		; copy value from ascii counter to mpr
 
-		rcall Bin2ASCII
+		rcall Bin2ASCII		; call BIN2ASCII from LCDDriver.asm
 
-		rcall LCDWrLn1
+		rcall LCDWrLn1		; Write line 1
 
-		ldi XL, $10
+		ldi XL, $10			; set X to address of line 2
 		ldi XH, $01
 
-		mov mpr, asciiT
+		mov mpr, asciiT     ; copy value from ascii counter to mpr
 
-		rcall Bin2ASCII
+		rcall Bin2ASCII		; call BIN2ASCII from LCDDriver.asm
 		
 		rcall LCDWrLn2
 
 		ret
 
+;-----------------------------------------------------------
+; Func: IncreaseLeft
+; Desc: Increases the counter for line 2 (hit left routine)
+;		writes updated value to LCD
+;-----------------------------------------------------------
 IncreaseLeft:
 		rcall LCDClr
 
-		inc asciiT
+		inc asciiT			; increment counter for line 1
 
-		ldi XL, $00
+		ldi XL, $00			; set X to address of line 1
 		ldi XH, $01
 
-		mov mpr, ascii
+		mov mpr, ascii		; copy value from ascii counter to mpr
 
 		rcall Bin2ASCII
 
 		rcall LCDWrLn1
 
-		ldi XL, $10
+		ldi XL, $10			; set X to address of line 2
 		ldi XH, $01
 
-		mov mpr, asciiT
+		mov mpr, asciiT		; copy value from asciiT counter to mpr
 
 		rcall Bin2ASCII
 		
@@ -301,12 +328,6 @@ ILoop:	dec		ilcnt			; decrement ilcnt
 		pop		ilcnt		; Restore ilcnt register
 		pop		waitcnt		; Restore wait register
 		ret				; Return from subroutine
-;-----------------------------------------------------------
-;	You will probably want several functions, one to handle the
-;	left whisker interrupt, one to handle the right whisker
-;	interrupt, and maybe a wait function
-;------------------------------------------------------------
-
 ;-----------------------------------------------------------
 ; Func: Template function header
 ; Desc: Cut and paste this and fill in the info at the
