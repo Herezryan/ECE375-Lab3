@@ -15,6 +15,8 @@
 .def	waitcnt = r17
 .def	ilcnt = r18				; Inner Loop Counter
 .def	olcnt = r19
+.def	ascii = r23				; Register for ascii chars
+.def	asciiT = r24			; Register for ascii chars line 2
 
 .equ	WskrR = 0				; Right Whisker Input Bit
 .equ	WskrL = 1				; Left Whisker Input Bit
@@ -71,6 +73,9 @@ INIT:							; The initialization routine
 
 		rcall LCDInit			; Initialize LCD 
 
+		ldi		ascii, $30
+		ldi		asciiT, $30
+
 		; Initialize Port B for output
 
 		ldi		mpr, $FF		; Set Port B Data Direction Register
@@ -85,37 +90,7 @@ INIT:							; The initialization routine
 		ldi		mpr, $FF		; Initialize Port D Data Register
 		out		PORTD, mpr
 
-		rcall LCDClr			; Clear clutter 
-
-		ldi YL, $00
-        ldi YH, $01
-
-        ldi mpr, $30
-        st Y+, mpr
-
-        rcall LCDWrLn1
-
-        ; --------------------------
-
-        ldi YL, $10
-        ldi YH, $01
-
-        ldi mpr, $30
-        st Y+, mpr
-        
-        rcall LCDWrLn2
-
-		; Testing LCDWrLn1
-
-		ldi YL, $00
-		ldi YH, $01
-
-		ldi mpr, $02
-		st Y+, mpr
-
-		rcall LCDWrLn1
-
-		; End Testing -- Delete Later
+		rcall ResetLCD			; Set LCD to 0
 
 		; Initialize external interrupts
 		ldi mpr, 0b10001010	; Set the Interrupt Sense Control to falling edge
@@ -164,10 +139,78 @@ HandleINT1:
 
 HandleINT3:
 		cli				; disable interrupts
-		rcall LCDClr
+		rcall ResetLCD	; reset to 0's on LCD
 		ldi mpr, $0B
 		out EIFR, mpr
 		sei				; re-enble interrupts
+
+		ret
+
+ResetLCD:
+		rcall LCDClr
+
+		ldi YL, $00
+		ldi YH, $01
+
+		ldi mpr, $30
+		st Y+, mpr
+
+		rcall LCDWrLn1
+
+		; --------------------------
+
+		ldi YL, $10
+		ldi YH, $01
+
+		ldi mpr, $30
+		st Y+, mpr
+		
+		rcall LCDWrLn2
+
+		ldi ascii, $30
+		ldi asciiT, $30
+
+		ret
+
+IncreaseRight:
+		rcall LCDClr
+
+		inc ascii
+
+		ldi YL, $00
+		ldi YH, $01
+
+		st Y+, ascii
+
+		rcall LCDWrLn1
+
+		ldi YL, $10
+		ldi YH, $01
+
+		st Y+, asciiT
+		
+		rcall LCDWrLn2
+
+		ret
+
+IncreaseLeft:
+		rcall LCDClr
+
+		inc asciiT
+
+		ldi YL, $00
+		ldi YH, $01
+
+		st Y+, ascii
+
+		rcall LCDWrLn1
+
+		ldi YL, $10
+		ldi YH, $01
+
+		st Y+, asciiT
+		
+		rcall LCDWrLn2
 
 		ret
 
@@ -197,6 +240,8 @@ HitRight:
 		out		SREG, mpr	;
 		pop		waitcnt		; Restore wait register
 		pop		mpr		; Restore mpr
+
+		rcall IncreaseRight	; increase counter in line 1
 		ret	
 		
 HitLeft:
@@ -225,6 +270,8 @@ HitLeft:
 		out		SREG, mpr	;
 		pop		waitcnt		; Restore wait register
 		pop		mpr		; Restore mpr
+
+		rcall IncreaseLeft	; Increase counter in line 2
 		ret
 
 
