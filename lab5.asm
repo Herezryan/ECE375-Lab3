@@ -87,6 +87,24 @@ INIT:							; The initialization routine
 
 		rcall LCDClr			; Clear clutter 
 
+		ldi YL, $00
+        ldi YH, $01
+
+        ldi mpr, $30
+        st Y+, mpr
+
+        rcall LCDWrLn1
+
+        ; --------------------------
+
+        ldi YL, $10
+        ldi YH, $01
+
+        ldi mpr, $30
+        st Y+, mpr
+        
+        rcall LCDWrLn2
+
 		; Testing LCDWrLn1
 
 		ldi YL, $00
