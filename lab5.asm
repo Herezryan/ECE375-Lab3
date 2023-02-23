@@ -167,8 +167,8 @@ ResetLCD:
 		
 		rcall LCDWrLn2
 
-		ldi ascii, $30
-		ldi asciiT, $30
+		ldi ascii, 0b00000000
+		ldi asciiT, 0b00000000
 
 		ret
 
@@ -182,16 +182,16 @@ IncreaseRight:
 
 		mov mpr, ascii
 
-		;st X+, mpr
-
 		rcall Bin2ASCII
 
 		rcall LCDWrLn1
 
-		ldi YL, $10
-		ldi YH, $01
+		ldi XL, $10
+		ldi XH, $01
 
-		st Y+, asciiT
+		mov mpr, asciiT
+
+		rcall Bin2ASCII
 		
 		rcall LCDWrLn2
 
@@ -202,17 +202,21 @@ IncreaseLeft:
 
 		inc asciiT
 
-		ldi YL, $00
-		ldi YH, $01
+		ldi XL, $00
+		ldi XH, $01
 
-		st Y+, ascii
+		mov mpr, ascii
+
+		rcall Bin2ASCII
 
 		rcall LCDWrLn1
 
-		ldi YL, $10
-		ldi YH, $01
+		ldi XL, $10
+		ldi XH, $01
 
-		st Y+, asciiT
+		mov mpr, asciiT
+
+		rcall Bin2ASCII
 		
 		rcall LCDWrLn2
 
