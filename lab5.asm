@@ -73,8 +73,8 @@ INIT:							; The initialization routine
 
 		rcall LCDInit			; Initialize LCD 
 
-		ldi		ascii, $30
-		ldi		asciiT, $30
+		ldi		ascii, 0b00000000
+		ldi		asciiT, 0b00000000
 
 		; Initialize Port B for output
 
@@ -152,7 +152,7 @@ ResetLCD:
 		ldi YL, $00
 		ldi YH, $01
 
-		ldi mpr, $30
+		ldi mpr, 0b00000000
 		st Y+, mpr
 
 		rcall LCDWrLn1
@@ -162,7 +162,7 @@ ResetLCD:
 		ldi YL, $10
 		ldi YH, $01
 
-		ldi mpr, $30
+		ldi mpr, 0b00000000
 		st Y+, mpr
 		
 		rcall LCDWrLn2
@@ -177,10 +177,14 @@ IncreaseRight:
 
 		inc ascii
 
-		ldi YL, $00
-		ldi YH, $01
+		ldi XL, $00
+		ldi XH, $01
 
-		st Y+, ascii
+		mov mpr, ascii
+
+		;st X+, mpr
+
+		rcall Bin2ASCII
 
 		rcall LCDWrLn1
 
