@@ -39,7 +39,7 @@
 ;***********************************************************
 INIT:
 		; Initialize the Stack Pointer
-		
+
 		ldi	mpr, low(RAMEND)	; Initialize Stack Pointer
 		out SPL, mpr
 		ldi mpr, high(RAMEND)
@@ -52,9 +52,31 @@ INIT:
 		ldi mpr, $FF
 		out PORTD, mpr
 
+								; Initialize PORT B for Output 
+		ldi		mpr, $FF		; Set Port B Data Direction Register
+		out		DDRB, mpr		; for output
+		ldi		mpr, $00		; Initialize Port B Data Register
+		out		PORTB, mpr		; so all Port B outputs are low
+
 		; Configure External Interrupts, if needed
 
+
 		; Configure 16-bit Timer/Counter 1A and 1B
+
+		ldi mpr, $00
+		sts TCNT1H, mpr
+		ldi mpr, $00
+		sts TCNT1L, mpr
+
+		ldi mpr, $00
+		sts OCR1AH, mpr
+		ldi mpr, $00
+		sts OCR1AL, mpr
+
+		ldi mpr, $B1			;load mpr with 177
+		sts TCCR1A, mpr			;copy value from mpr to TCCR1A 
+		ldi mpr, $09			;load mpr with value of address		
+		sts TCCR1B, mpr			;copy value from mpr to TCCR1B
 
 		; Fast PWM, 8-bit mode, no prescaling
 
