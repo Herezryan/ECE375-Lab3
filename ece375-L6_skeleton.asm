@@ -85,6 +85,14 @@ INIT:
 		ldi mpr, $02
 		sts TIFR1, mpr
 
+		;speed level 8
+		ldi mpr, $88
+		sts OCR1AL, mpr
+		ldi mpr, $00
+		sts OCR1AH, mpr
+
+		sei 
+
 		; Fast PWM, 8-bit mode, no prescaling
 
 		; Set TekBot to Move Forward (1<<EngDirR|1<<EngDirL) on Port B
@@ -128,6 +136,10 @@ HANDLE_TC:	; Begin a function with a label
 		cbi	PORTB, $05
 		cbi	PORTB, $06
 		cbi	PORTB, $07
+
+		ldi mpr, $02
+		out TIFR1, mpr
+
 
 		ret						; End a function with RET
 
