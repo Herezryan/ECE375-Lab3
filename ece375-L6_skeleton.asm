@@ -60,23 +60,30 @@ INIT:
 
 		; Configure External Interrupts, if needed
 
+		.org $0022
+		;create function that will turn off the LED HERE
 
 		; Configure 16-bit Timer/Counter 1A and 1B
 
-		ldi mpr, $00
-		sts TCNT1H, mpr
-		ldi mpr, $00
-		sts TCNT1L, mpr
+		ldi mpr, $00			;load mpr with address
+		sts TCNT1H, mpr			;copy value from mpr to TCNT1H
+		ldi mpr, $00			;load mpr with address
+		sts TCNT1L, mpr			;copy value from mpy to TCNT1L
 
-		ldi mpr, $00
-		sts OCR1AH, mpr
-		ldi mpr, $00
-		sts OCR1AL, mpr
+		ldi mpr, $00			;load mpr with address
+		sts OCR1AH, mpr			;copy value from mpr to OCR1AH
+		ldi mpr, $00			;load mpr with address
+		sts OCR1AL, mpr			;copy value from mpr to OCR1AL
 
 		ldi mpr, $B1			;load mpr with 177
 		sts TCCR1A, mpr			;copy value from mpr to TCCR1A 
 		ldi mpr, $09			;load mpr with value of address		
 		sts TCCR1B, mpr			;copy value from mpr to TCCR1B
+
+		ldi mpr, $02
+		sts TIMSK1, mpr
+		ldi mpr, $02
+		sts TIFR1, mpr
 
 		; Fast PWM, 8-bit mode, no prescaling
 
@@ -86,11 +93,19 @@ INIT:
 
 		; Enable global interrupts (if any are used)
 
+		
+
 ;***********************************************************
 ;*	Main Program
 ;***********************************************************
 MAIN:
 		; poll Port D pushbuttons (if needed)
+
+		;Turn on LEDs
+		sbi	PORTB, $04
+		sbi	PORTB, $05
+		sbi	PORTB, $06
+		sbi	PORTB, $07
 
 								; if pressed, adjust speed
 								; also, adjust speed indication
@@ -102,17 +117,17 @@ MAIN:
 ;***********************************************************
 
 ;-----------------------------------------------------------
-; Func:	Template function header
+; Func:	HANDLE_TC
 ; Desc:	Cut and paste this and fill in the info at the
 ;		beginning of your functions
 ;-----------------------------------------------------------
-FUNC:	; Begin a function with a label
+HANDLE_TC:	; Begin a function with a label
 
-		; If needed, save variables by pushing to the stack
-
-		; Execute the function here
-
-		; Restore any saved variables by popping from stack
+		;Turn on LEDs
+		cbi	PORTB, $04
+		cbi	PORTB, $05
+		cbi	PORTB, $06
+		cbi	PORTB, $07
 
 		ret						; End a function with RET
 
