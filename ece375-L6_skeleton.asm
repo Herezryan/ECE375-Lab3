@@ -39,15 +39,19 @@
 ;***********************************************************
 INIT:
 		; Initialize the Stack Pointer
+		
 		ldi	mpr, low(RAMEND)	; Initialize Stack Pointer
 		out SPL, mpr
 		ldi mpr, high(RAMEND)
 		out SPH, mpr
+
 		; Configure I/O ports
+
 		ldi mpr, $00			; Initialize Port D for input
 		out DDRD, mpr
 		ldi mpr, $FF
 		out PORTD, mpr
+
 		; Configure External Interrupts, if needed
 
 		; Configure 16-bit Timer/Counter 1A and 1B
