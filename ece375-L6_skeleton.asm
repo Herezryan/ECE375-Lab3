@@ -39,7 +39,10 @@
 ;***********************************************************
 INIT:
 		; Initialize the Stack Pointer
-
+		ldi	mpr, low(RAMEND)	; Initialize Stack Pointer
+		out SPL, mpr
+		ldi mpr, high(RAMEND)
+		out SPH, mpr
 		; Configure I/O ports
 
 		; Configure External Interrupts, if needed
