@@ -117,42 +117,44 @@ INIT:
 MAIN:
 		in mpr, PIND
 		andi mpr, 0b11010000
-		cpi mpr, 0b01100000
-		brne NEXT
+		cpi mpr, 0b10000000
+		brne INC_R
+		cpi mpr, 0b01000000
+		brne DEC_R
+		cpi mpr, 0b00010000
+		brne SET_FULL
+
+		rjmp MAIN
 		; inc routine
+INC_R:
+		
 		ldi mpr, $11
 		lds comp, OCR1AL
 		cpi comp, $FF
-		breq NEXT3			; Prevent looping around
+		breq MAIN			; Prevent looping around
 		add mpr, comp
 		sts OCR1AL, mpr
 		sts OCR1BL, mpr
 		rjmp MAIN
-NEXT:
-		cpi mpr, 0b10100000
-		brne NEXT2
+DEC_R:
+		
 		; dec routine
 		ldi mpr, $11
 		lds comp, OCR1AL
 		cpi comp, $00
-		breq NEXT3			; Prevent looping around
+		breq MAIN			; Prevent looping around
 		sub comp, mpr
 		sts OCR1AL, comp
 		sts OCR1BL, comp
 		rjmp MAIN
-NEXT2: 
-		cpi mpr, 0b11000000
-		brne NEXT3
+SET_FULL: 
+		
 		; start with full speed
 		ldi mpr, $FF			;load mpr with address
 		sts OCR1AL, mpr			;copy value from mpr to OCR1AL
 		ldi mpr, $FF			;load mpr with address
 		sts OCR1BL, mpr	
 		rjmp MAIN		;copy value from mpr to OCR1AL
-NEXT3:
-		rjmp MAIN
-
-		rjmp	MAIN			; return to top of MAIN
 
 ;***********************************************************
 ;*	Functions and Subroutines
