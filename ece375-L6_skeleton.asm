@@ -64,7 +64,7 @@ INIT:
 		ldi		mpr, $FF		; Set Port B Data Direction Register
 		out		DDRB, mpr		; for output
 		;ldi		mpr, $90		; Initialize Port B Data Register
-		ldi		mpr, 0b11110000
+		ldi		mpr, 0b11111111
 		out		PORTB, mpr		; so all Port B outputs are low
 
 		; Configure External Interrupts, if needed
@@ -135,19 +135,25 @@ MAIN:
 		rjmp MAIN
 
 NEXT:
-
 		in mpr, PIND
 		andi mpr, (1<<6)
 		cpi mpr, (1<<6)
-		brne DEC_R
+		breq NEXT2
+		rcall DEC_R
+		rjmp MAIN
 
+NEXT2:
 		in mpr, PIND
 		andi mpr, (1<<4)
 		cpi mpr, (1<<4)
-		brne SET_FULL
-
+		breq NEXT3
+		rcall SET_FULL
+	
+NEXT3:
 		rjmp MAIN
 		; inc routine
+
+
 INC_R:
 		push mpr
 		push comp
@@ -172,18 +178,25 @@ INC_R:
 		;rcall MAIN
 		ret
 DEC_R:
-		
+		push mpr
+		push comp
 		; dec routine
 		ldi mpr, $11
 		lds comp, OCR1AL
 		cpi check, $00
-		breq MAIN			; Prevent looping around
+		breq MAIN			; Prevent looping ar
 		dec check
+		rcall SpeedWrite
 		sub comp, mpr
 		sts OCR1AL, comp
 		sts OCR1BL, comp
+		ldi waitcnt, WTime
+		rcall Wait
+		pop comp
+		pop mpr
 		ret
 SET_FULL: 
+		push mpr
 		
 		; start with full speed
 		ldi mpr, $FF			;load mpr with address
@@ -191,7 +204,9 @@ SET_FULL:
 		;ldi mpr, $FF			;load mpr with address
 		sts OCR1BL, mpr	
 		ldi check, $0F
-		rcall MAIN		;copy value from mpr to OCR1AL
+		rcall SpeedWrite
+		pop mpr
+		ret		;copy value from mpr to OCR1AL
 
 SpeedWrite:
 		push check
@@ -204,6 +219,7 @@ SpeedWrite:
 		st Y+, check			; store 0 in line 1 address
 
 		rcall LCDWrLn1
+		
 
 		pop mpr
 		pop check
