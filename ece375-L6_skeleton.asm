@@ -13,6 +13,8 @@
 ;*	Internal Register Definitions and Constants
 ;***********************************************************
 .def	mpr = r16				; Multipurpose register
+.def    comp = r19
+.def	check = r20
 
 .equ	EngEnR = 5				; right Engine Enable Bit
 .equ	EngEnL = 6				; left Engine Enable Bit
@@ -55,12 +57,13 @@ INIT:
 								; Initialize PORT B for Output 
 		ldi		mpr, $FF		; Set Port B Data Direction Register
 		out		DDRB, mpr		; for output
-		ldi		mpr, $00		; Initialize Port B Data Register
+		;ldi		mpr, $90		; Initialize Port B Data Register
+		ldi		mpr, 0b11110000
 		out		PORTB, mpr		; so all Port B outputs are low
 
 		; Configure External Interrupts, if needed
 
-		.org $0022
+		;.org $0022
 		;create function that will turn off the LED HERE
 
 		; Configure 16-bit Timer/Counter 1A and 1B
@@ -75,23 +78,28 @@ INIT:
 		ldi mpr, $00			;load mpr with address
 		sts OCR1AL, mpr			;copy value from mpr to OCR1AL
 
-		ldi mpr, $B1			;load mpr with 177
+		ldi mpr, $00			;load mpr with address
+		sts OCR1BH, mpr			;copy value from mpr to OCR1AH
+		ldi mpr, $00			;load mpr with address
+		sts OCR1BL, mpr			;copy value from mpr to OCR1AL
+
+		ldi mpr, 0b11110001			;load mpr with 177
 		sts TCCR1A, mpr			;copy value from mpr to TCCR1A 
 		ldi mpr, $09			;load mpr with value of address		
 		sts TCCR1B, mpr			;copy value from mpr to TCCR1B
 
-		ldi mpr, $02
+		ldi mpr, $06
 		sts TIMSK1, mpr
-		ldi mpr, $02
-		sts TIFR1, mpr
+		;ldi mpr, $02
+		;sts TIFR1, mpr
 
 		;speed level 8
-		ldi mpr, $88
-		sts OCR1AL, mpr
-		ldi mpr, $00
-		sts OCR1AH, mpr
+		;ldi mpr, $00
+		;sts OCR1AL, mpr
+		;ldi mpr, $00
+		;sts OCR1AH, mpr
 
-		sei 
+		;sei 
 
 		; Fast PWM, 8-bit mode, no prescaling
 
@@ -107,16 +115,42 @@ INIT:
 ;*	Main Program
 ;***********************************************************
 MAIN:
-		; poll Port D pushbuttons (if needed)
-
-		;Turn on LEDs
-		sbi	PORTB, $04
-		sbi	PORTB, $05
-		sbi	PORTB, $06
-		sbi	PORTB, $07
-
-								; if pressed, adjust speed
-								; also, adjust speed indication
+		in mpr, PIND
+		andi mpr, 0b11010000
+		cpi mpr, 0b01100000
+		brne NEXT
+		; inc routine
+		ldi mpr, $11
+		lds comp, OCR1AL
+		cpi comp, $FF
+		breq NEXT3			; Prevent looping around
+		add mpr, comp
+		sts OCR1AL, mpr
+		sts OCR1BL, mpr
+		rjmp MAIN
+NEXT:
+		cpi mpr, 0b10100000
+		brne NEXT2
+		; dec routine
+		ldi mpr, $11
+		lds comp, OCR1AL
+		cpi comp, $00
+		breq NEXT3			; Prevent looping around
+		sub comp, mpr
+		sts OCR1AL, comp
+		sts OCR1BL, comp
+		rjmp MAIN
+NEXT2: 
+		cpi mpr, 0b11000000
+		brne NEXT3
+		; start with full speed
+		ldi mpr, $FF			;load mpr with address
+		sts OCR1AL, mpr			;copy value from mpr to OCR1AL
+		ldi mpr, $FF			;load mpr with address
+		sts OCR1BL, mpr	
+		rjmp MAIN		;copy value from mpr to OCR1AL
+NEXT3:
+		rjmp MAIN
 
 		rjmp	MAIN			; return to top of MAIN
 
@@ -129,19 +163,6 @@ MAIN:
 ; Desc:	Cut and paste this and fill in the info at the
 ;		beginning of your functions
 ;-----------------------------------------------------------
-HANDLE_TC:	; Begin a function with a label
-
-		;Turn on LEDs
-		cbi	PORTB, $04
-		cbi	PORTB, $05
-		cbi	PORTB, $06
-		cbi	PORTB, $07
-
-		ldi mpr, $02
-		out TIFR1, mpr
-
-
-		ret						; End a function with RET
 
 ;***********************************************************
 ;*	Stored Program Data
