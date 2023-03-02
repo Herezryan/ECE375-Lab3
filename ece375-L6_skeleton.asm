@@ -14,7 +14,7 @@
 ;***********************************************************
 .def	mpr = r16				; Multipurpose register
 .def    comp = r19
-.def	check = r20
+.def	check = r23
 
 .equ	EngEnR = 5				; right Engine Enable Bit
 .equ	EngEnL = 6				; left Engine Enable Bit
@@ -23,9 +23,9 @@
 
 .def	waitcnt = r17				; Wait Loop Counter
 .def	ilcnt = r18				; Inner Loop Counter
-.def	olcnt = r21				; Outer Loop Counter
+.def	olcnt = r24				; Outer Loop Counter
 
-.equ	WTime = 500
+.equ	WTime = 25
 
 ;***********************************************************
 ;*	Start of Code Segment
@@ -73,6 +73,8 @@ INIT:
 		;create function that will turn off the LED HERE
 
 		; Configure 16-bit Timer/Counter 1A and 1B
+		rcall LCDInit
+		rcall LCDClr
 
 		ldi mpr, $00			;load mpr with address
 		sts TCNT1H, mpr			;copy value from mpr to TCNT1H
@@ -98,6 +100,8 @@ INIT:
 		sts TIMSK1, mpr
 
 		ldi check, $00
+
+		rcall SpeedWrite
 		;ldi mpr, $02
 		;sts TIFR1, mpr
 
@@ -126,7 +130,11 @@ MAIN:
 		in mpr, PIND
 		andi mpr, (1<<7)
 		cpi mpr, (1<<7)
-		brne INC_R
+		breq NEXT
+		rcall INC_R
+		rjmp MAIN
+
+NEXT:
 
 		in mpr, PIND
 		andi mpr, (1<<6)
@@ -149,17 +157,20 @@ INC_R:
 		cpi check, $0F
 		breq MAIN			; Prevent looping around
 		inc check
+		rcall SpeedWrite
 		;add check, comp
 		add mpr, comp
 		sts OCR1AL, mpr
 		sts OCR1BL, mpr
 		;sts OCR1AL, check
 		;sts OCR1BL, check
+		ldi waitcnt, WTime
+		rcall Wait
 		pop comp
 		pop mpr
-		;rcall Wait
-		rcall MAIN
-		;ret
+		
+		;rcall MAIN
+		ret
 DEC_R:
 		
 		; dec routine
@@ -182,6 +193,23 @@ SET_FULL:
 		ldi check, $0F
 		rcall MAIN		;copy value from mpr to OCR1AL
 
+SpeedWrite:
+		push check
+		push mpr
+		ldi YL, $00			; set Y to address of line 1
+		ldi YH, $01
+
+		ldi mpr, $30
+		add check, mpr
+		st Y+, check			; store 0 in line 1 address
+
+		rcall LCDWrLn1
+
+		pop mpr
+		pop check
+
+		ret
+
 
 Wait:
 		push	waitcnt			; Save wait register
@@ -202,6 +230,8 @@ ILoop:	dec		ilcnt			; decrement ilcnt
 		pop		waitcnt		; Restore wait register
 		ret				; Return from subroutine
 
+
+.include "LCDDriver.asm"
 ;***********************************************************
 ;*	Functions and Subroutines
 ;***********************************************************
@@ -221,4 +251,5 @@ ILoop:	dec		ilcnt			; decrement ilcnt
 ;*	Additional Program Includes
 ;***********************************************************
 		; There are no additional file includes for this program
+
 
