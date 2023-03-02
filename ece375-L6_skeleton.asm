@@ -25,7 +25,7 @@
 .def	ilcnt = r18				; Inner Loop Counter
 .def	olcnt = r21				; Outer Loop Counter
 
-.equ	WTime = 100
+.equ	WTime = 500
 
 ;***********************************************************
 ;*	Start of Code Segment
@@ -138,25 +138,28 @@ MAIN:
 		cpi mpr, (1<<4)
 		brne SET_FULL
 
-		rcall MAIN
+		rjmp MAIN
 		; inc routine
 INC_R:
-		
+		push mpr
+		push comp
 		ldi mpr, $11
-		;lds comp, OCR1AL
-		ldi comp, $11
-		cpi check, $FF
+		lds comp, OCR1AL
+		;ldi comp, $11
+		cpi check, $0F
 		breq MAIN			; Prevent looping around
-		;inc check
-		add check, comp
-		;add mpr, comp
-		;sts OCR1AL, mpr
-		;sts OCR1BL, mpr
-		sts OCR1AL, check
-		sts OCR1BL, check
+		inc check
+		;add check, comp
+		add mpr, comp
+		sts OCR1AL, mpr
+		sts OCR1BL, mpr
+		;sts OCR1AL, check
+		;sts OCR1BL, check
+		pop comp
+		pop mpr
 		;rcall Wait
-		;rcall MAIN
-		ret
+		rcall MAIN
+		;ret
 DEC_R:
 		
 		; dec routine
@@ -168,7 +171,7 @@ DEC_R:
 		sub comp, mpr
 		sts OCR1AL, comp
 		sts OCR1BL, comp
-		rcall MAIN
+		ret
 SET_FULL: 
 		
 		; start with full speed
@@ -218,3 +221,4 @@ ILoop:	dec		ilcnt			; decrement ilcnt
 ;*	Additional Program Includes
 ;***********************************************************
 		; There are no additional file includes for this program
+
