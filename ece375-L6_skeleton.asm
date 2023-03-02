@@ -116,12 +116,18 @@ INIT:
 ;***********************************************************
 MAIN:
 		in mpr, PIND
-		andi mpr, 0b11010000
-		cpi mpr, 0b10000000
+		andi mpr, (1<<PIND7)
+		cpi mpr, (1<<PIND7)
 		brne INC_R
-		cpi mpr, 0b01000000
+
+		in mpr, PIND
+		andi mpr, (1<<PIND6)
+		cpi mpr, (1<<PIND6)
 		brne DEC_R
-		cpi mpr, 0b00010000
+
+		in mpr, PIND
+		andi mpr, (1<<PIND4)
+		cpi mpr, (1<<PIND4)
 		brne SET_FULL
 
 		rjmp MAIN
