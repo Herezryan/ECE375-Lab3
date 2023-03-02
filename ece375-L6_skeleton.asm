@@ -21,6 +21,12 @@
 .equ	EngDirR = 4				; right Engine Direction Bit
 .equ	EngDirL = 7				; left Engine Direction Bit
 
+.def	waitcnt = r17				; Wait Loop Counter
+.def	ilcnt = r18				; Inner Loop Counter
+.def	olcnt = r21				; Outer Loop Counter
+
+.equ	WTime = 100
+
 ;***********************************************************
 ;*	Start of Code Segment
 ;***********************************************************
@@ -90,6 +96,8 @@ INIT:
 
 		ldi mpr, $06
 		sts TIMSK1, mpr
+
+		ldi check, $00
 		;ldi mpr, $02
 		;sts TIFR1, mpr
 
@@ -116,51 +124,80 @@ INIT:
 ;***********************************************************
 MAIN:
 		in mpr, PIND
-		andi mpr, (1<<PIND7)
-		cpi mpr, (1<<PIND7)
+		andi mpr, (1<<7)
+		cpi mpr, (1<<7)
 		brne INC_R
 
 		in mpr, PIND
-		andi mpr, (1<<PIND6)
-		cpi mpr, (1<<PIND6)
+		andi mpr, (1<<6)
+		cpi mpr, (1<<6)
 		brne DEC_R
 
 		in mpr, PIND
-		andi mpr, (1<<PIND4)
-		cpi mpr, (1<<PIND4)
+		andi mpr, (1<<4)
+		cpi mpr, (1<<4)
 		brne SET_FULL
 
-		rjmp MAIN
+		rcall MAIN
 		; inc routine
 INC_R:
 		
 		ldi mpr, $11
-		lds comp, OCR1AL
-		cpi comp, $FF
+		;lds comp, OCR1AL
+		ldi comp, $11
+		cpi check, $FF
 		breq MAIN			; Prevent looping around
-		add mpr, comp
-		sts OCR1AL, mpr
-		sts OCR1BL, mpr
-		rjmp MAIN
+		;inc check
+		add check, comp
+		;add mpr, comp
+		;sts OCR1AL, mpr
+		;sts OCR1BL, mpr
+		sts OCR1AL, check
+		sts OCR1BL, check
+		;rcall Wait
+		;rcall MAIN
+		ret
 DEC_R:
 		
 		; dec routine
 		ldi mpr, $11
 		lds comp, OCR1AL
-		cpi comp, $00
+		cpi check, $00
 		breq MAIN			; Prevent looping around
+		dec check
 		sub comp, mpr
 		sts OCR1AL, comp
 		sts OCR1BL, comp
-		rjmp MAIN
+		rcall MAIN
 SET_FULL: 
 		
 		; start with full speed
 		ldi mpr, $FF			;load mpr with address
 		sts OCR1AL, mpr			;copy value from mpr to OCR1AL
-		ldi mpr, $FF			;load mpr with address
+		;ldi mpr, $FF			;load mpr with address
 		sts OCR1BL, mpr	
-		rjmp MAIN		;copy value from mpr to OCR1AL
+		ldi check, $0F
+		rcall MAIN		;copy value from mpr to OCR1AL
+
+
+Wait:
+		push	waitcnt			; Save wait register
+		push	ilcnt			; Save ilcnt register
+		push	olcnt			; Save olcnt register
+
+Loop:	ldi		olcnt, 224		; load olcnt register
+OLoop:	ldi		ilcnt, 237		; load ilcnt register
+ILoop:	dec		ilcnt			; decrement ilcnt
+		brne	ILoop			; Continue Inner Loop
+		dec		olcnt		; decrement olcnt
+		brne	OLoop			; Continue Outer Loop
+		dec		waitcnt		; Decrement wait
+		brne	Loop			; Continue Wait loop
+
+		pop		olcnt		; Restore olcnt register
+		pop		ilcnt		; Restore ilcnt register
+		pop		waitcnt		; Restore wait register
+		ret				; Return from subroutine
 
 ;***********************************************************
 ;*	Functions and Subroutines
