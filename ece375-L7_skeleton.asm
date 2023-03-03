@@ -43,7 +43,17 @@
 ;***********************************************************
 INIT:
 	;Stack Pointer (VERY IMPORTANT!!!!)
+
+	; Initialize the Stack Pointer
+
+		ldi	mpr, low(RAMEND)	; Initialize Stack Pointer
+		out SPL, mpr
+		ldi mpr, high(RAMEND)
+		out SPH, mpr
+
 	;I/O Ports
+
+	
 	;USART1
 		;Set baudrate at 2400bps
 		;Enable receiver and transmitter
