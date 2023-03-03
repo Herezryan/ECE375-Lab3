@@ -64,6 +64,10 @@ INIT:
 
 	;Other
 
+	;Initialize the LCD
+		rcall LCDInit
+		rcall LCDClr
+
 
 ;***********************************************************
 ;*  Main Program
@@ -97,6 +101,18 @@ Paper_END:
 Scissor_START:
     .DB		"Scissors"		; Declaring data in ProgMem
 Scissor_END:
+
+WIN_START:
+    .DB		"WIN!"		; Declaring data in ProgMem
+WIN_END:
+
+LOSS_START:
+    .DB		"LOSS!"		; Declaring data in ProgMem
+LOSS_END:
+
+DRAW_START:
+    .DB		"DRAW!"		; Declaring data in ProgMem
+DRAW_END:
 
 ;***********************************************************
 ;*	Additional Program Includes
