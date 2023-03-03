@@ -53,7 +53,7 @@ INIT:
 
 	;I/O Ports
 
-	
+
 	;USART1
 		;Set baudrate at 2400bps
 		;Enable receiver and transmitter
@@ -86,9 +86,17 @@ MAIN:
 ; An example of storing a string. Note the labels before and
 ; after the .DB directive; these can help to access the data
 ;-----------------------------------------------------------
-STRING_START:
-    .DB		"Welcome!"		; Declaring data in ProgMem
-STRING_END:
+Rock_START:
+    .DB		"Rock"		; Declaring data in ProgMem
+Rock_END:
+
+Paper_START:
+    .DB		"Paper"		; Declaring data in ProgMem
+Paper_END:
+
+Scissor_START:
+    .DB		"Scissor"		; Declaring data in ProgMem
+Scissor_END:
 
 ;***********************************************************
 ;*	Additional Program Includes
