@@ -95,7 +95,7 @@ Paper_START:
 Paper_END:
 
 Scissor_START:
-    .DB		"Scissor"		; Declaring data in ProgMem
+    .DB		"Scissors"		; Declaring data in ProgMem
 Scissor_END:
 
 ;***********************************************************
