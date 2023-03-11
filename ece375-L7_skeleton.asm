@@ -1,3 +1,4 @@
+
 ;***********************************************************
 ;*
 ;*	This is the TRANSMIT skeleton file for Lab 7 of ECE 375
@@ -19,9 +20,11 @@
 ;*  Internal Register Definitions and Constants
 ;***********************************************************
 .def    mpr = r16               ; Multi-Purpose Register
+.def	counter = r17
+.def	play = r18
 
 ; Use this signal code between two boards for their game ready
-.equ    SendReady = $FF
+.equ    ReadyComp = $FF
 .equ	PD_seven = 7
 .equ	PD_four = 4
 
@@ -65,27 +68,49 @@ INIT:
 
 	;USART1
 		;Set baudrate at 2400bps
+		;Enable receiver and transmitter
+		;Set frame format: 8 data bits, 2 stop bits
+		;Set baudrate at 2400bps
 		ldi mpr, $00
-		out	UBRR1H, mpr
-		ldi mpr, $CF			;If UBRR is set to 207 with 8mhz clock will give 2400bps, so  load $00CF
-		out UBRR1L, mpr
+		sts	UBRR1H, mpr
+		ldi mpr, $CF
+		sts UBRR1L, mpr
 
 		;Enable receiver and transmitter
 		ldi mpr, (1<<RXEN1)|(1<<TXEN1)
-		out	USCR1B, mpr
+		sts	UCSR1B, mpr
 
 		;Set frame format: 8 data bits, 2 stop bits
 		ldi mpr, (1<<USBS1)|(3<<UCSZ10)
-		out UCSR1C, mpr
+		sts UCSR1C, mpr
 
 	;TIMER/COUNTER1
 		;Set Normal mode
 
 	;Other
 
-	;Initialize the LCD
 		rcall LCDInit
 		rcall LCDClr
+		
+		ldi ZL, low(Init_START<<1)
+		ldi ZH, high(Init_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 8
+
+		rcall InitWriteL1
+
+		ldi ZL, low(InitL2_START<<1)
+		ldi ZH, high(InitL2_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 16
+
+		rcall InitWriteL2
+
+		ldi play, $00
+	;Initialize the LCD
+		
 
 
 ;***********************************************************
@@ -96,7 +121,7 @@ MAIN:
 		andi mpr, (1<<7)
 		cpi mpr, (1<<7)
 		breq NEXT
-		rcall READY
+		rcall WAITING
 		rjmp MAIN
 
 NEXT:
@@ -106,8 +131,175 @@ NEXT:
 ;*	Functions and Subroutines
 ;***********************************************************
 
-READY:
-		
+InitWriteL1:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne InitWriteL1
+
+		rcall LCDWrLn1
+		ret
+
+InitWriteL2:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne InitWriteL2
+
+		rcall LCDWrLn2
+		ret
+
+WAITING:
+		ldi ZL, low(PressedL1_START<<1)
+		ldi ZH, high(PressedL1_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 14
+
+		rcall ReadyWrLn1
+
+		ldi ZL, low(PressedL2_START<<1)
+		ldi ZH, high(PressedL2_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 16
+
+		rcall ReadyWrLn2
+
+		rcall SendReady
+		;rcall CheckOpp
+
+		rcall Game
+
+		ret
+
+ReadyWrLn1:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne ReadyWrLn1
+
+		rcall LCDWrLn1
+		ret
+
+ReadyWrLn2:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne ReadyWrLn2
+
+		rcall LCDWrLn2
+		ret
+
+SendReady:
+		ldi mpr, $FF
+		sts UDR1, mpr
+
+		lds mpr, UDR1
+		cpi mpr, $FF
+		brne SendReady
+		ret
+
+Game:
+		;in PINB
+		;cpi mpr
+		cpi play, $03
+		breq Reset
+		rcall WriteLine1Start
+		rcall WritePlay1
+		in mpr, PIND
+		andi mpr, (1<<4)
+		cpi mpr, (1<<4)
+		breq Game
+		inc play
+		rjmp Game
+
+		ret
+
+Reset:
+		ldi play, $00
+		ret
+
+WriteLine1Start:
+		ldi ZL, low(Start_START<<1)
+		ldi ZH, high(Start_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 10
+
+		rcall WriteLine1Helper
+		ret
+
+WriteLine1Helper:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteLine1Helper
+
+		rcall LCDWrLn1
+		ret
+
+WritePlay1:
+		cpi play, $00
+		brne WritePlay2
+		ldi ZL, low(Rock_START<<1)
+		ldi ZH, high(Rock_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 4
+
+		rcall WriteRock
+		ret
+WritePlay2:
+		cpi play, $01
+		brne WritePlay3
+		ldi ZL, low(Paper_START<<1)
+		ldi ZH, high(Paper_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 5
+
+		rcall WritePaper
+		ret
+WritePlay3:
+		cpi play, $02
+		brne WritePlay4
+		ret
+
+WritePlay4:
+		ldi ZL, low(Scissor_START<<1)
+		ldi ZH, high(Scissor_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 8
+		rcall WriteScissors
+		ret
+
+WriteRock:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteRock
+
+		rcall LCDWrLn2
+		ret
+
+WritePaper:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WritePaper
+
+		rcall LCDWrLn2
+		ret
+
+WriteScissors:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteScissors
+
+		rcall LCDWrLn2
 		ret
 
 ;***********************************************************
@@ -134,6 +326,10 @@ PressedL1_END:
 PressedL2_START:
 	.DB		"for the opponent"
 PressedL2_END:
+
+Start_START:
+	.DB		"Game Start"
+Start_END:
 
 Rock_START:
     .DB		"Rock"		; Declaring data in ProgMem
