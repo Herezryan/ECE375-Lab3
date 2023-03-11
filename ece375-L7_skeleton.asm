@@ -67,7 +67,7 @@ INIT:
 		;Set baudrate at 2400bps
 		ldi mpr, $00
 		out	UBRR1H, mpr
-		ldi mpr, $CF
+		ldi mpr, $CF			;If UBRR is set to 207 with 8mhz clock will give 2400bps, so  load $00CF
 		out UBRR1L, mpr
 
 		;Enable receiver and transmitter
