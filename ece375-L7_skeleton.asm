@@ -71,11 +71,11 @@ INIT:
 		out UBRR1L, mpr
 
 		;Enable receiver and transmitter
-		ldi mpr, (1<<RXENn)|(1<<TXENn)
+		ldi mpr, (1<<RXEN1)|(1<<TXEN1)
 		out	USCR1B, mpr
 
 		;Set frame format: 8 data bits, 2 stop bits
-		ldi mpr, (1<<USBSN)|(3<<UCSZN0)
+		ldi mpr, (1<<USBS1)|(3<<UCSZ10)
 		out UCSR1C, mpr
 
 	;TIMER/COUNTER1
