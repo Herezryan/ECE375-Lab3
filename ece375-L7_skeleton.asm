@@ -1,4 +1,3 @@
-
 ;***********************************************************
 ;*
 ;*	This is the TRANSMIT skeleton file for Lab 7 of ECE 375
@@ -9,8 +8,8 @@
 ;* 	2. Timer/counter1 Normal mode to create a 1.5-sec delay
 ;***********************************************************
 ;*
-;*	 Author: Enter your name
-;*	   Date: Enter Date
+;*	 Author: Paul Lipp and Ryan Muriset
+;*	   Date: 2023-03-11
 ;*
 ;***********************************************************
 
@@ -22,7 +21,9 @@
 .def    mpr = r16               ; Multi-Purpose Register
 
 ; Use this signal code between two boards for their game ready
-.equ    SendReady = 0b11111111
+.equ    SendReady = $FF
+.equ	PD_seven = 7
+.equ	PD_four = 4
 
 ;***********************************************************
 ;*  Start of Code Segment
@@ -52,7 +53,15 @@ INIT:
 		out SPH, mpr
 
 	;I/O Ports
+		ldi mpr, $00			; Initialize Port D for input
+		out DDRD, mpr
+		ldi mpr, $FF
+		out PORTD, mpr
 
+		ldi mpr, $FF
+		out DDRB, mpr
+		ldi mpr, $00
+		out PORTB, mpr
 
 	;USART1
 		;Set baudrate at 2400bps
@@ -73,14 +82,23 @@ INIT:
 ;*  Main Program
 ;***********************************************************
 MAIN:
+		in mpr, PIND
+		andi mpr, (1<<7)
+		cpi mpr, (1<<7)
+		breq NEXT
+		rcall READY
+		rjmp MAIN
 
-	;TODO: ???
-
-		rjmp	MAIN
+NEXT:
+		rjmp MAIN
 
 ;***********************************************************
 ;*	Functions and Subroutines
 ;***********************************************************
+
+READY:
+		
+		ret
 
 ;***********************************************************
 ;*	Stored Program Data
@@ -90,6 +108,23 @@ MAIN:
 ; An example of storing a string. Note the labels before and
 ; after the .DB directive; these can help to access the data
 ;-----------------------------------------------------------
+
+Init_START:
+	.DB		"Welcome!"
+Init_END:
+
+InitL2_START:
+	.DB		"Please Press PD7"
+InitL2_END:
+
+PressedL1_START:
+	.DB		"Ready. Waiting"
+PressedL1_END:
+
+PressedL2_START:
+	.DB		"for the opponent"
+PressedL2_END:
+
 Rock_START:
     .DB		"Rock"		; Declaring data in ProgMem
 Rock_END:
@@ -118,4 +153,3 @@ DRAW_END:
 ;*	Additional Program Includes
 ;***********************************************************
 .include "LCDDriver.asm"		; Include the LCD Driver
-
