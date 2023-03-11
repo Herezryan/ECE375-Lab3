@@ -66,17 +66,17 @@ INIT:
 	;USART1
 		;Set baudrate at 2400bps
 		ldi mpr, $00
-		out	UBRRHn, mpr
+		out	UBRR1H, mpr
 		ldi mpr, $CF
-		out UBRRLn, mpr
+		out UBRR1L, mpr
 
 		;Enable receiver and transmitter
 		ldi mpr, (1<<RXENn)|(1<<TXENn)
-		out	USCRnB, mpr
+		out	USCR1B, mpr
 
 		;Set frame format: 8 data bits, 2 stop bits
 		ldi mpr, (1<<USBSN)|(3<<UCSZN0)
-		out UCSRnC, mpr
+		out UCSR1C, mpr
 
 	;TIMER/COUNTER1
 		;Set Normal mode
