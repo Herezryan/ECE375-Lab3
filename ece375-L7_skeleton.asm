@@ -20,13 +20,18 @@
 ;*  Internal Register Definitions and Constants
 ;***********************************************************
 .def    mpr = r16               ; Multi-Purpose Register
-.def	counter = r17
-.def	play = r18
+.def	counter = r19
+.def	play = r23
 
 ; Use this signal code between two boards for their game ready
 .equ    ReadyComp = $FF
 .equ	PD_seven = 7
 .equ	PD_four = 4
+.def	waitcnt = r17				; Wait Loop Counter
+.def	ilcnt = r18				; Inner Loop Counter
+.def	olcnt = r24				; Outer Loop Counter
+
+.equ	WTime = 10
 
 ;***********************************************************
 ;*  Start of Code Segment
@@ -168,7 +173,7 @@ WAITING:
 
 		rcall SendReady
 		;rcall CheckOpp
-
+		rcall LCDClr
 		rcall Game
 
 		ret
@@ -204,7 +209,9 @@ Game:
 		;in PINB
 		;cpi mpr
 		cpi play, $03
-		breq Reset
+		brne Game2
+		rcall Reset
+Game2:
 		rcall WriteLine1Start
 		rcall WritePlay1
 		in mpr, PIND
@@ -212,18 +219,21 @@ Game:
 		cpi mpr, (1<<4)
 		breq Game
 		inc play
+		ldi waitcnt, WTime
+		rcall Wait
 		rjmp Game
 
 		ret
 
 Reset:
 		ldi play, $00
+		rcall LCDClr
 		ret
 
 WriteLine1Start:
 		ldi ZL, low(Start_START<<1)
 		ldi ZH, high(Start_START<<1)
-		ldi YL, $10
+		ldi YL, $00
 		ldi YH, $01
 		ldi counter, 10
 
@@ -262,17 +272,17 @@ WritePlay2:
 		rcall WritePaper
 		ret
 WritePlay3:
-		cpi play, $02
-		brne WritePlay4
-		ret
-
-WritePlay4:
+		;cpi play, $02
+		;brne WritePlay4
 		ldi ZL, low(Scissor_START<<1)
 		ldi ZH, high(Scissor_START<<1)
 		ldi YL, $10
 		ldi YH, $01
 		ldi counter, 8
 		rcall WriteScissors
+		ret
+
+WritePlay4:
 		ret
 
 WriteRock:
@@ -301,6 +311,25 @@ WriteScissors:
 
 		rcall LCDWrLn2
 		ret
+
+Wait:
+		push	waitcnt			; Save wait register
+		push	ilcnt			; Save ilcnt register
+		push	olcnt			; Save olcnt register
+
+Loop:	ldi		olcnt, 224		; load olcnt register
+OLoop:	ldi		ilcnt, 237		; load ilcnt register
+ILoop:	dec		ilcnt			; decrement ilcnt
+		brne	ILoop			; Continue Inner Loop
+		dec		olcnt		; decrement olcnt
+		brne	OLoop			; Continue Outer Loop
+		dec		waitcnt		; Decrement wait
+		brne	Loop			; Continue Wait loop
+
+		pop		olcnt		; Restore olcnt register
+		pop		ilcnt		; Restore ilcnt register
+		pop		waitcnt		; Restore wait register
+		ret				; Return from subroutine
 
 ;***********************************************************
 ;*	Stored Program Data
@@ -359,3 +388,4 @@ DRAW_END:
 ;*	Additional Program Includes
 ;***********************************************************
 .include "LCDDriver.asm"		; Include the LCD Driver
+
