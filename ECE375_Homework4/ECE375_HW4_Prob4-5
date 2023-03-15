@@ -1,0 +1,54 @@
+***********************************************************
+;*	 Author: Ryan Muriset
+;*	   Date: March 15, 2023
+;*
+;***********************************************************
+
+.include "m32U4def.inc"			; Include definition file
+
+;***********************************************************
+;*	Internal Register Definitions and Constants
+;***********************************************************
+.def	mpr = r16				; Multipurpose register
+
+;***********************************************************
+;*	Start of Code Segment
+;***********************************************************
+.cseg							; beginning of code segment
+
+;***********************************************************
+;*	Interrupt Vectors
+;***********************************************************
+.org	$0000
+		rjmp	INIT			; reset interrupt
+
+		; place instructions in interrupt vectors here, if needed
+
+.org	$0056					; end of interrupt vectors
+
+;***********************************************************
+;*	Program Initialization
+;***********************************************************
+INIT:
+		; Initialize the Stack Pointer (VERY IMPORTANT!!!!)
+		ldi		mpr, low(RAMEND)
+		out		SPL, mpr		; Load SPL with low byte of RAMEND
+		ldi		mpr, high(RAMEND)
+		out		SPH, mpr		; Load SPH with high byte of RAMEND
+
+		; Initialize Port B for output (LEDS)
+		ldi		mpr, $FF		; Set Port B Data Direction Register
+		out		DDRB, mpr		; for output
+		ldi		mpr, $00		; Initialize Port B Data Register
+		out		PORTB, mpr		; so all Port B outputs are low
+
+		; Initialize Port D for inputs
+		ldi		mpr, $00		; Set Port D Data Direction Register
+		out		DDRD, mpr		; for input
+		ldi		mpr, $F0		; Enable pull-up resistors for PD7 to PD4
+		out		PORTD, mpr		;
+
+MAIN:
+        in mpr, PIND
+        andi	mpr, (1<<PIND7)
+		cpi	mpr, (1<<PIND7)

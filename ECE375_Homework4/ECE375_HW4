@@ -1,0 +1,133 @@
+***********************************************************
+;*
+;*	This is the skeleton file forHW4, problem 1 of ECE 375
+;*
+;*	 Author: Matthew Shuman
+;*	   Date: March 1st, 2023
+;*
+;***********************************************************
+
+.include "m32U4def.inc"			; Include definition file
+
+;***********************************************************
+;*	Internal Register Definitions and Constants
+;***********************************************************
+.def	mpr = r16				; Multipurpose register
+
+;***********************************************************
+;*	Start of Code Segment
+;***********************************************************
+.cseg							; beginning of code segment
+
+;***********************************************************
+;*	Interrupt Vectors
+;***********************************************************
+.org	$0000
+		rjmp	INIT			; reset interrupt
+
+		; place instructions in interrupt vectors here, if needed
+
+.org	$0056					; end of interrupt vectors
+
+;***********************************************************
+;*	Program Initialization
+;***********************************************************
+INIT:
+		; Initialize the Stack Pointer (VERY IMPORTANT!!!!)
+		ldi		mpr, low(RAMEND)
+		out		SPL, mpr		; Load SPL with low byte of RAMEND
+		ldi		mpr, high(RAMEND)
+		out		SPH, mpr		; Load SPH with high byte of RAMEND
+
+		; Initialize Port B for output (LEDS)
+		ldi		mpr, $FF		; Set Port B Data Direction Register
+		out		DDRB, mpr		; for output
+		ldi		mpr, $00		; Initialize Port B Data Register
+		out		PORTB, mpr		; so all Port B outputs are low
+
+		; Initialize Port D for inputs
+		ldi		mpr, $00		; Set Port D Data Direction Register
+		out		DDRD, mpr		; for input
+		ldi		mpr, $F0		; Enable pull-up resistors for PD7 to PD4
+		out		PORTD, mpr		;
+
+
+;***********************************************************
+;*	Main Program
+;***********************************************************
+MAIN:
+    
+CHECK7:	
+		;in	mpr, PIND		; Get register of button pushes
+		;andi	mpr, (1<<PIND7)
+		;cpi	mpr, (1<<PIND7)	
+		;brne	CHECK6		; Continue with next check
+        sbis PIND, 7
+		rcall	D7PUSHED
+CHECK6:	
+		;in	mpr, PIND		; Get register of button pushes
+		;andi	mpr, (1<<PIND6)
+		;cpi	mpr, (1<<PIND6)	
+		;brne	CHECK5		; Continue with next check
+        sbis PIND, 6
+		rcall	D6PUSHED
+
+CHECK5:		
+		;in	mpr, PIND		; Get register of button pushes
+		;andi	mpr, (1<<PIND5)
+		;cpi	mpr, (1<<PIND5)	
+		;brne	CHECK4		; Continue with next check
+        sbis PIND, 5
+		rcall	D5PUSHED
+
+CHECK4:
+		;in	mpr, PIND		; Get register of button pushes
+		;andi	mpr, (1<<PIND4)
+		;cpi	mpr, (1<<PIND4)	
+		;brne	DONECHECK		; Continue with next check
+        sbis PIND, 4
+		rcall	D4PUSHED
+
+DONECHECK:
+		in		mpr, PINB		; read current values for PORTB
+		com		mpr		; invert values
+		out		PORTB, mpr		; flip the LEDs
+
+		rjmp	MAIN			; return to top of MAIN
+
+;***********************************************************
+;*	Functions and Subroutines
+;***********************************************************
+
+
+D7PUSHED:
+		nop	
+		nop
+		nop
+		nop
+		nop
+		ret
+
+D6PUSHED: 
+		nop
+		nop
+		nop
+		ret
+
+D5PUSHED:
+		nop 
+		ret
+
+D4PUSHED:
+		ret 
+		
+;***********************************************************
+;*	Stored Program Data
+;***********************************************************
+		; Enter any stored data you might need here
+
+;***********************************************************
+;*	Additional Program Includes
+;***********************************************************
+		; There are no additional file includes for this program
+
