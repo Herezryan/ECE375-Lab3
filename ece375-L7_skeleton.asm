@@ -134,6 +134,8 @@ INIT:
 		rcall InitWriteL2
 
 		ldi play, $00
+
+		sei
 	;Initialize the LCD
 		
 
@@ -142,6 +144,7 @@ INIT:
 ;*  Main Program
 ;***********************************************************
 MAIN:
+		cli
 		in mpr, PIND
 		andi mpr, (1<<7)
 		cpi mpr, (1<<7)
@@ -155,6 +158,45 @@ NEXT:
 ;***********************************************************
 ;*	Functions and Subroutines
 ;***********************************************************
+
+HandleTC1:
+		push mpr
+		cli
+		ldi mpr, $00
+		out TIFR1, mpr	; clear EIFR
+
+		dec time
+		cpi time, $00
+		breq KillLED
+		sei
+		pop mpr
+		ret
+KillLED:
+		in mpr, PINB
+		andi mpr, 0b11110000
+		cpi mpr, (1<<7)
+		breq Check6
+		sbi PORTB, 7
+		ret
+Check6:
+		cpi mpr, (1<<6)
+		breq Check5
+		sbi PORTB, 6
+		ret
+Check5:
+		cpi mpr, (1<<5)
+		breq Check5
+		sbi PORTB, 5
+		ret
+Check4:
+		cpi mpr, (1<<4)
+		brne Kill4
+		ret
+Kill4:
+		sbi PORTB, 4
+		ret
+
+
 
 InitWriteL1:
 		lpm mpr, Z+
@@ -194,7 +236,7 @@ WAITING:
 		rcall SendReady
 		;rcall CheckOpp
 		rcall LCDClr
-		sei
+		;sei
 		rcall Game
 
 		ret
@@ -227,6 +269,7 @@ SendReady:
 		ret
 
 Game:
+		sei
 		;in PINB
 		;cpi mpr
 		cpi play, $03
@@ -333,24 +376,6 @@ WriteScissors:
 		rcall LCDWrLn2
 		ret
 
-HandleTC1:
-		cli
-		ldi mpr, $00
-		out TIFR1, mpr	; clear EIFR
-
-		dec time
-		cpi time, $00
-		brne Finish
-		rcall KillLED
-		ret
-Finish:
-		sei
-		ret
-
-KillLED:
-		ldi mpr, 0b00000000
-		out PORTB, mpr
-		ret
 
 Wait:
 		push	waitcnt			; Save wait register
@@ -428,5 +453,3 @@ DRAW_END:
 ;*	Additional Program Includes
 ;***********************************************************
 .include "LCDDriver.asm"		; Include the LCD Driver
-
-
