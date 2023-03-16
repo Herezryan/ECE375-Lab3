@@ -45,8 +45,8 @@
 .org    $0000                   ; Beginning of IVs
 	    rjmp    INIT            	; Reset interrupt
 
-.org	$0004
-		rcall HandleTC1
+.org	$0002
+		rcall HandleINT0
 		reti
 
 .org    $0056                   ; End of Interrupt Vectors
@@ -96,20 +96,23 @@ INIT:
 	;TIMER/COUNTER1
 		;Set Normal mode
 
-		ldi time, $0A
+		;ldi time, $0A
 		
-		ldi mpr, 0b11000000
+		ldi mpr, 0b00000000
 		sts TCCR1A, mpr
 
-		ldi mpr, 0b00000010
+		ldi mpr, 0b00000100
 		sts TCCR1B, mpr
 
-		ldi mpr, $00
-		sts TCNT1L, mpr
-		sts TCNT1H, mpr
+		;ldi mpr, $00
+		;sts TCNT1L, mpr
+		;sts TCNT1H, mpr
 
-		ldi mpr, 0b00000001
-		sts TIMSK1, mpr
+		;ldi mpr, 0b00000001
+		;sts TIMSK1, mpr
+
+		ldi		mpr, $02
+		sts		EICRA, mpr
 		
 
 	;Other
@@ -135,7 +138,10 @@ INIT:
 
 		ldi play, $00
 
-		sei
+		ldi mpr, $01
+		out EIMSK, mpr
+
+		;sei
 	;Initialize the LCD
 		
 
@@ -144,7 +150,6 @@ INIT:
 ;*  Main Program
 ;***********************************************************
 MAIN:
-		cli
 		in mpr, PIND
 		andi mpr, (1<<7)
 		cpi mpr, (1<<7)
@@ -158,45 +163,6 @@ NEXT:
 ;***********************************************************
 ;*	Functions and Subroutines
 ;***********************************************************
-
-HandleTC1:
-		push mpr
-		cli
-		ldi mpr, $00
-		out TIFR1, mpr	; clear EIFR
-
-		dec time
-		cpi time, $00
-		breq KillLED
-		sei
-		pop mpr
-		ret
-KillLED:
-		in mpr, PINB
-		andi mpr, 0b11110000
-		cpi mpr, (1<<7)
-		breq Check6
-		sbi PORTB, 7
-		ret
-Check6:
-		cpi mpr, (1<<6)
-		breq Check5
-		sbi PORTB, 6
-		ret
-Check5:
-		cpi mpr, (1<<5)
-		breq Check5
-		sbi PORTB, 5
-		ret
-Check4:
-		cpi mpr, (1<<4)
-		brne Kill4
-		ret
-Kill4:
-		sbi PORTB, 4
-		ret
-
-
 
 InitWriteL1:
 		lpm mpr, Z+
@@ -268,30 +234,59 @@ SendReady:
 		brne SendReady
 		ret
 
-Game:
-		sei
-		;in PINB
-		;cpi mpr
-		cpi play, $03
-		brne Game2
-		rcall Reset
-Game2:
-		rcall WriteLine1Start
-		rcall WritePlay1
-		in mpr, PIND
-		andi mpr, (1<<4)
-		cpi mpr, (1<<4)
-		breq Game
+HandleINT0:
+		cli
 		inc play
+		cpi play, $03
+		breq Handle2
+		rcall WritePlay1
+		sbi EIFR, 0
 		ldi waitcnt, WTime
 		rcall Wait
-		rjmp Game
+		sei
+		ret
+Handle2:
+		rcall Reset
+		ret
+Game:
+		sei
+		
+		rcall WriteLine1Start
+		rcall WritePlay1
+		ldi mpr, (1<<7|1<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|1<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|0<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|0<<5|0<<4)
+		out PORTB, mpr
+		ldi mpr, $00
+		out EIMSK, mpr
+		cli
+		ret
 
+TimerLoop:
+		ldi mpr, $48
+		sts TCNT1H, mpr
+		ldi mpr, $E5
+		sts TCNT1L, mpr
+TimerLoopHelper:
+		sbis TIFR1, 0
+		rjmp TimerLoopHelper
+		sbi TIFR1, 0
 		ret
 
 Reset:
 		ldi play, $00
-		rcall LCDClr
+		rcall LCDClrLn2
+		rcall WritePlay1
 		ret
 
 WriteLine1Start:
