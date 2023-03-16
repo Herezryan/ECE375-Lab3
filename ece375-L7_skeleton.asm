@@ -22,7 +22,7 @@
 .def    mpr = r16               ; Multi-Purpose Register
 .def	counter = r19
 .def	play = r23
-.def	time = r25
+.def	opplay = r25
 
 ; Use this signal code between two boards for their game ready
 .equ    ReadyComp = $FF
@@ -141,6 +141,8 @@ INIT:
 		ldi mpr, $01
 		out EIMSK, mpr
 
+		ldi opplay, $00
+
 		;sei
 	;Initialize the LCD
 		
@@ -164,23 +166,7 @@ NEXT:
 ;*	Functions and Subroutines
 ;***********************************************************
 
-InitWriteL1:
-		lpm mpr, Z+
-		st Y+, mpr
-		dec counter
-		brne InitWriteL1
 
-		rcall LCDWrLn1
-		ret
-
-InitWriteL2:
-		lpm mpr, Z+
-		st Y+, mpr
-		dec counter
-		brne InitWriteL2
-
-		rcall LCDWrLn2
-		ret
 
 WAITING:
 		ldi ZL, low(PressedL1_START<<1)
@@ -200,30 +186,17 @@ WAITING:
 		rcall ReadyWrLn2
 
 		rcall SendReady
-		;rcall CheckOpp
 		rcall LCDClr
-		;sei
 		rcall Game
+		rcall SendResult
+		rcall EvalGame
 
 		ret
 
-ReadyWrLn1:
-		lpm mpr, Z+
-		st Y+, mpr
-		dec counter
-		brne ReadyWrLn1
-
-		rcall LCDWrLn1
-		ret
-
-ReadyWrLn2:
-		lpm mpr, Z+
-		st Y+, mpr
-		dec counter
-		brne ReadyWrLn2
-
-		rcall LCDWrLn2
-		ret
+;***********************************************************
+;*	Called when PD7 is pressed. Writes Waiting for player
+;*  and calls SendReady. Starts Game once SendReady returns
+;***********************************************************
 
 SendReady:
 		ldi mpr, $FF
@@ -233,6 +206,11 @@ SendReady:
 		cpi mpr, $FF
 		brne SendReady
 		ret
+
+;***********************************************************
+;*	Sends FF to USART UDR1, then polls UDR1 to wait for Ready
+;*  from other board. Returns to Waiting
+;***********************************************************
 
 HandleINT0:
 		cli
@@ -248,6 +226,12 @@ HandleINT0:
 Handle2:
 		rcall Reset
 		ret
+
+;***********************************************************
+;*	Interrupt Service, Increments play reg
+;***********************************************************
+
+
 Game:
 		sei
 		
@@ -269,11 +253,17 @@ Game:
 		out PORTB, mpr
 		ldi mpr, $00
 		out EIMSK, mpr
+
 		cli
 		ret
 
+;***********************************************************
+;*  TimerCounter1 Loop
+;*  Has TC1 Count to 18660, which is 65535 - ...
+;***********************************************************
+
 TimerLoop:
-		ldi mpr, $48
+		ldi mpr, $48				
 		sts TCNT1H, mpr
 		ldi mpr, $E5
 		sts TCNT1L, mpr
@@ -288,6 +278,61 @@ Reset:
 		rcall LCDClrLn2
 		rcall WritePlay1
 		ret
+
+;***********************************************************
+;*	Main Game Routine
+;***********************************************************
+
+SendResult:
+		lds mpr, UCSR1A
+		sbrs mpr, UDRE1
+		rjmp SendResult
+		sts UDR1, play
+AwaitResult:
+		lds mpr, UCSR1A
+		sbrs mpr, RXC1
+		rjmp AwaitResult
+		lds opplay, UDR1
+
+		ret
+
+
+;***********************************************************
+;*	Send Result to other board
+;***********************************************************
+
+EvalGame:
+		rcall LCDClr
+		rcall WritePlay1Ln1		;play
+		rcall WritePlay1
+		rcall WriteOpPlay1		;opplay
+		ldi mpr, (1<<7|1<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|1<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|0<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|0<<5|0<<4)
+		out PORTB, mpr
+		ret
+
+;***********************************************************
+;*	Evaluate Game and print Result
+;***********************************************************
+
+;**********************************************************************************************************************
+;**********************************************************************************************************************
+
+
+;***********************************************************
+;*	Write Functions
+;***********************************************************
 
 WriteLine1Start:
 		ldi ZL, low(Start_START<<1)
@@ -307,6 +352,8 @@ WriteLine1Helper:
 
 		rcall LCDWrLn1
 		ret
+
+;****************************************************
 
 WritePlay1:
 		cpi play, $00
@@ -331,8 +378,6 @@ WritePlay2:
 		rcall WritePaper
 		ret
 WritePlay3:
-		;cpi play, $02
-		;brne WritePlay4
 		ldi ZL, low(Scissor_START<<1)
 		ldi ZH, high(Scissor_START<<1)
 		ldi YL, $10
@@ -343,6 +388,90 @@ WritePlay3:
 
 WritePlay4:
 		ret
+
+;*********************************************************
+
+WriteOpPlay1:
+		cpi opplay, $00
+		brne WriteOpPlay2
+		ldi ZL, low(Rock_START<<1)
+		ldi ZH, high(Rock_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 4
+
+		rcall WriteRock
+		ret
+WriteOpPlay2:
+		cpi opplay, $01
+		brne WriteOpPlay3
+		ldi ZL, low(Paper_START<<1)
+		ldi ZH, high(Paper_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 5
+
+		rcall WritePaper
+		ret
+WriteOpPlay3:
+		cpi opplay, $02
+		brne WriteOpPlay4
+		ldi ZL, low(Scissor_START<<1)
+		ldi ZH, high(Scissor_START<<1)
+		ldi YL, $10
+		ldi YH, $01
+		ldi counter, 8
+		rcall WriteScissors
+		ret
+
+WriteOpPlay4:
+		ldi YL, $10			
+		ldi YH, $01
+
+		ldi mpr, $30
+		add opplay, mpr
+		st Y+, opplay		
+
+		rcall LCDWrLn1
+		ret
+
+;*********************************************************
+
+WritePlay1Ln1:
+		cpi play, $00
+		brne WritePlay2Ln1
+		ldi ZL, low(Rock_START<<1)
+		ldi ZH, high(Rock_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 4
+
+		rcall WriteRockLn1
+		ret
+WritePlay2Ln1:
+		cpi play, $01
+		brne WritePlay3Ln1
+		ldi ZL, low(Paper_START<<1)
+		ldi ZH, high(Paper_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 5
+
+		rcall WritePaperLn1
+		ret
+WritePlay3Ln1:
+		ldi ZL, low(Scissor_START<<1)
+		ldi ZH, high(Scissor_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 8
+		rcall WriteScissorsLn1
+		ret
+
+WritePlay4Ln1:
+		ret
+
+;**************************************************************
 
 WriteRock:
 		lpm mpr, Z+
@@ -370,6 +499,83 @@ WriteScissors:
 
 		rcall LCDWrLn2
 		ret
+
+;*************************************************************
+
+WriteRockLn1:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteRockLn1
+
+		rcall LCDWrLn1
+		ret
+
+WritePaperLn1:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WritePaperLn1
+
+		rcall LCDWrLn1
+		ret
+
+WriteScissorsLn1:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteScissorsLn1
+
+		rcall LCDWrLn1
+		ret
+
+;***********************************************************
+;*	Writes Play (RPS)
+;***********************************************************
+
+InitWriteL1:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne InitWriteL1
+
+		rcall LCDWrLn1
+		ret
+
+InitWriteL2:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne InitWriteL2
+
+		rcall LCDWrLn2
+		ret
+
+;***********************************************************
+;*	Write Initial Message (Welcome!)
+;***********************************************************
+
+ReadyWrLn1:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne ReadyWrLn1
+
+		rcall LCDWrLn1
+		ret
+
+ReadyWrLn2:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne ReadyWrLn2
+
+		rcall LCDWrLn2
+		ret
+
+;***********************************************************
+;*  Write Functions to write Ready, waiting for other player
+;***********************************************************
 
 
 Wait:
