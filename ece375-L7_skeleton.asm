@@ -22,6 +22,7 @@
 .def    mpr = r16               ; Multi-Purpose Register
 .def	counter = r19
 .def	play = r23
+.def	time = r25
 
 ; Use this signal code between two boards for their game ready
 .equ    ReadyComp = $FF
@@ -31,7 +32,7 @@
 .def	ilcnt = r18				; Inner Loop Counter
 .def	olcnt = r24				; Outer Loop Counter
 
-.equ	WTime = 10
+.equ	WTime = 15
 
 ;***********************************************************
 ;*  Start of Code Segment
@@ -44,6 +45,9 @@
 .org    $0000                   ; Beginning of IVs
 	    rjmp    INIT            	; Reset interrupt
 
+.org	$0004
+		rcall HandleTC1
+		reti
 
 .org    $0056                   ; End of Interrupt Vectors
 
@@ -91,6 +95,22 @@ INIT:
 
 	;TIMER/COUNTER1
 		;Set Normal mode
+
+		ldi time, $0A
+		
+		ldi mpr, 0b11000000
+		sts TCCR1A, mpr
+
+		ldi mpr, 0b00000010
+		sts TCCR1B, mpr
+
+		ldi mpr, $00
+		sts TCNT1L, mpr
+		sts TCNT1H, mpr
+
+		ldi mpr, 0b00000001
+		sts TIMSK1, mpr
+		
 
 	;Other
 
@@ -174,6 +194,7 @@ WAITING:
 		rcall SendReady
 		;rcall CheckOpp
 		rcall LCDClr
+		sei
 		rcall Game
 
 		ret
@@ -312,6 +333,25 @@ WriteScissors:
 		rcall LCDWrLn2
 		ret
 
+HandleTC1:
+		cli
+		ldi mpr, $00
+		out TIFR1, mpr	; clear EIFR
+
+		dec time
+		cpi time, $00
+		brne Finish
+		rcall KillLED
+		ret
+Finish:
+		sei
+		ret
+
+KillLED:
+		ldi mpr, 0b00000000
+		out PORTB, mpr
+		ret
+
 Wait:
 		push	waitcnt			; Save wait register
 		push	ilcnt			; Save ilcnt register
@@ -388,4 +428,5 @@ DRAW_END:
 ;*	Additional Program Includes
 ;***********************************************************
 .include "LCDDriver.asm"		; Include the LCD Driver
+
 
