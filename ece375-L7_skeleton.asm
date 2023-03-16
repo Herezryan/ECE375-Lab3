@@ -22,14 +22,14 @@
 .def    mpr = r16               ; Multi-Purpose Register
 .def	counter = r19
 .def	play = r23
-.def	opplay = r25
+.def	opplay = r18
 
 ; Use this signal code between two boards for their game ready
 .equ    ReadyComp = $FF
 .equ	PD_seven = 7
 .equ	PD_four = 4
 .def	waitcnt = r17				; Wait Loop Counter
-.def	ilcnt = r18				; Inner Loop Counter
+.def	ilcnt = r25				; Inner Loop Counter
 .def	olcnt = r24				; Outer Loop Counter
 
 .equ	WTime = 15
@@ -47,6 +47,10 @@
 
 .org	$0002
 		rcall HandleINT0
+		reti
+
+.org	$0032
+		rcall HandleRECX
 		reti
 
 .org    $0056                   ; End of Interrupt Vectors
@@ -85,8 +89,11 @@ INIT:
 		ldi mpr, $CF
 		sts UBRR1L, mpr
 
+		ldi mpr, (1<<UDRE1)
+		sts UCSR1A, mpr
+
 		;Enable receiver and transmitter
-		ldi mpr, (1<<RXEN1)|(1<<TXEN1)
+		ldi mpr, (1<<RXCIE1)|(1<<RXEN1)|(1<<TXEN1)
 		sts	UCSR1B, mpr
 
 		;Set frame format: 8 data bits, 2 stop bits
@@ -157,7 +164,7 @@ MAIN:
 		cpi mpr, (1<<7)
 		breq NEXT
 		rcall WAITING
-		rjmp MAIN
+		ret
 
 NEXT:
 		rjmp MAIN
@@ -188,8 +195,30 @@ WAITING:
 		rcall SendReady
 		rcall LCDClr
 		rcall Game
+		sei
 		rcall SendResult
+		ldi waitcnt, 50
+		rcall Wait
+		cli
 		rcall EvalGame
+		rcall LCDClr
+		rcall WritePlay1
+		rcall PrintResult
+
+		ldi mpr, (1<<7|1<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|1<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|1<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|0<<5|1<<4)
+		out PORTB, mpr
+		rcall TimerLoop
+		ldi mpr, (0<<7|0<<6|0<<5|0<<4)
+		out PORTB, mpr
 
 		ret
 
@@ -288,10 +317,12 @@ SendResult:
 		sbrs mpr, UDRE1
 		rjmp SendResult
 		sts UDR1, play
-AwaitResult:
+		ret
+
+HandleRECX:
 		lds mpr, UCSR1A
 		sbrs mpr, RXC1
-		rjmp AwaitResult
+		rjmp HandleRECX
 		lds opplay, UDR1
 
 		ret
@@ -303,9 +334,9 @@ AwaitResult:
 
 EvalGame:
 		rcall LCDClr
-		rcall WritePlay1Ln1		;play
-		rcall WritePlay1
 		rcall WriteOpPlay1		;opplay
+		rcall WritePlay1Ln1		;play
+		
 		ldi mpr, (1<<7|1<<6|1<<5|1<<4)
 		out PORTB, mpr
 		rcall TimerLoop
@@ -323,7 +354,53 @@ EvalGame:
 		ret
 
 ;***********************************************************
-;*	Evaluate Game and print Result
+;*	Print both hands
+;***********************************************************
+
+PrintResult:
+		cp play, opplay
+		brne Print2
+		rcall WriteResultDraw
+		ret
+Print2:
+		cpi play, $00						; 00 01 02		00 beats 02 || 01 beats 00 || 02 beats 01
+		brne Print3
+		rcall PrintResultHelper1
+		ret
+Print3:
+		cpi play, $01
+		brne Print4
+		rcall PrintResultHelper2
+		ret
+Print4:
+		cpi opplay, $01
+		breq PrintWin
+		rcall WriteResultLoss
+		ret
+PrintWin:
+		rcall WriteResultWin
+		ret
+
+PrintResultHelper1:
+		cpi opplay, $02
+		brne PrintLossHelper1
+		rcall WriteResultWin
+		ret
+PrintLossHelper1:
+		rcall WriteResultLoss
+		ret
+
+PrintResultHelper2:
+		cpi opplay, $00
+		brne PrintLossHelper2
+		rcall WriteResultWin
+		ret
+PrintLossHelper2:
+		rcall WriteResultLoss
+		ret
+
+;***********************************************************
+;*	Print Result
 ;***********************************************************
 
 ;**********************************************************************************************************************
@@ -432,7 +509,7 @@ WriteOpPlay4:
 		add opplay, mpr
 		st Y+, opplay		
 
-		rcall LCDWrLn1
+		rcall LCDWrLn2
 		ret
 
 ;*********************************************************
@@ -575,6 +652,57 @@ ReadyWrLn2:
 
 ;***********************************************************
 ;*  Write Functions to write Ready, waiting for other player
+;***********************************************************
+
+WriteResultWin:
+		ldi ZL, low(WIN_START<<1)
+		ldi ZH, high(WIN_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 4
+
+WriteWin2:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteWin2
+
+		rcall LCDWrLn1
+		ret
+
+WriteResultLoss:
+		ldi ZL, low(LOSS_START<<1)
+		ldi ZH, high(LOSS_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 5
+
+WriteLoss2:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteLoss2
+
+		rcall LCDWrLn1
+		ret
+
+WriteResultDraw:
+		ldi ZL, low(DRAW_START<<1)
+		ldi ZH, high(DRAW_START<<1)
+		ldi YL, $00
+		ldi YH, $01
+		ldi counter, 5
+
+WriteDraw2:
+		lpm mpr, Z+
+		st Y+, mpr
+		dec counter
+		brne WriteDraw2
+
+		rcall LCDWrLn1
+		ret
+;***********************************************************
+;*  Write Functions to write Result
 ;***********************************************************
 
 
