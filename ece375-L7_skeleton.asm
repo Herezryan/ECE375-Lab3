@@ -101,9 +101,7 @@ INIT:
 		sts UCSR1C, mpr
 
 	;TIMER/COUNTER1
-		;Set Normal mode
-
-		;ldi time, $0A
+		;Set Normal mode, 256 pre-scaler
 		
 		ldi mpr, 0b00000000
 		sts TCCR1A, mpr
@@ -111,18 +109,12 @@ INIT:
 		ldi mpr, 0b00000100
 		sts TCCR1B, mpr
 
-		;ldi mpr, $00
-		;sts TCNT1L, mpr
-		;sts TCNT1H, mpr
-
-		;ldi mpr, 0b00000001
-		;sts TIMSK1, mpr
-
 		ldi		mpr, $02
 		sts		EICRA, mpr
 		
 
 	;Other
+	;Initialize LCD
 
 		rcall LCDInit
 		rcall LCDClr
@@ -143,6 +135,8 @@ INIT:
 
 		rcall InitWriteL2
 
+	;Write initial welcome to LCD
+
 		ldi play, $00
 
 		ldi mpr, $01
@@ -159,11 +153,11 @@ INIT:
 ;*  Main Program
 ;***********************************************************
 MAIN:
-		in mpr, PIND
-		andi mpr, (1<<7)
+		in mpr, PIND			;Polling PIND
+		andi mpr, (1<<7)		;Check for PD7 press
 		cpi mpr, (1<<7)
 		breq NEXT
-		rcall WAITING
+		rcall WAITING			;Start Game Routines
 		ret
 
 NEXT:
@@ -191,20 +185,22 @@ WAITING:
 		ldi counter, 16
 
 		rcall ReadyWrLn2
+		;Write Ready Lines 1 and 2
 
-		rcall SendReady
-		rcall LCDClr
-		rcall Game
+		rcall SendReady		;Send Ready USART1
+		rcall LCDClr		
+		rcall Game			;Call Game Routine
 		sei
-		rcall SendResult
-		ldi waitcnt, 50
-		rcall Wait
+		rcall SendResult	;SendResult to USART1
+		ldi waitcnt, 50		;Wait to allow interrupt to trigger
+		rcall Wait		
 		cli
-		rcall EvalGame
+		rcall EvalGame		;Write both plays to LCD
 		rcall LCDClr
-		rcall WritePlay1
-		rcall PrintResult
-
+		rcall WritePlay1	
+		rcall PrintResult	;Write Result
+		
+		;LEDs Countdown Script
 		ldi mpr, (1<<7|1<<6|1<<5|1<<4)
 		out PORTB, mpr
 		rcall TimerLoop
@@ -228,10 +224,10 @@ WAITING:
 ;***********************************************************
 
 SendReady:
-		ldi mpr, $FF
+		ldi mpr, $FF		;Send Ready ($FF) to USART1
 		sts UDR1, mpr
 
-		lds mpr, UDR1
+		lds mpr, UDR1		;Poll for Ready from USART1
 		cpi mpr, $FF
 		brne SendReady
 		ret
@@ -243,7 +239,7 @@ SendReady:
 
 HandleINT0:
 		cli
-		inc play
+		inc play			;Service INT0, Cycle Play Options on LCD
 		cpi play, $03
 		breq Handle2
 		rcall WritePlay1
@@ -262,11 +258,11 @@ Handle2:
 
 
 Game:
-		sei
-		
-		rcall WriteLine1Start
-		rcall WritePlay1
-		ldi mpr, (1<<7|1<<6|1<<5|1<<4)
+		sei							;Interrupts are enabled during this routine to 
+									;allow for cycling of line 2 options
+		rcall WriteLine1Start		;Write "game start" prompt Line 1
+		rcall WritePlay1			;Write option Line 2
+		ldi mpr, (1<<7|1<<6|1<<5|1<<4)		;LED Countdown Script
 		out PORTB, mpr
 		rcall TimerLoop
 		ldi mpr, (0<<7|1<<6|1<<5|1<<4)
@@ -288,7 +284,9 @@ Game:
 
 ;***********************************************************
 ;*  TimerCounter1 Loop
-;*  Has TC1 Count to 18660, which is 65535 - ...
+;*  Has TC1 Count to 18660, which is 65535 - 46875
+;*	8/256 = 0.03125 = 32000ns, 32000*x = 1.5s
+;*  1.5s/32000 = x; x = 46875
 ;***********************************************************
 
 TimerLoop:
@@ -319,7 +317,7 @@ SendResult:
 		sts UDR1, play
 		ret
 
-HandleRECX:
+HandleRECX:							;USART1 RXC1 Interrupt Service Routine. Retrieves Data from UDR1
 		lds mpr, UCSR1A
 		sbrs mpr, RXC1
 		rjmp HandleRECX
@@ -334,10 +332,10 @@ HandleRECX:
 
 EvalGame:
 		rcall LCDClr
-		rcall WriteOpPlay1		;opplay
-		rcall WritePlay1Ln1		;play
+		rcall WriteOpPlay1		;opplay - Write Opponents Play to Line2
+		rcall WritePlay1Ln1		;play   - Write Play to line1
 		
-		ldi mpr, (1<<7|1<<6|1<<5|1<<4)
+		ldi mpr, (1<<7|1<<6|1<<5|1<<4)	; LED Countdown Script
 		out PORTB, mpr
 		rcall TimerLoop
 		ldi mpr, (0<<7|1<<6|1<<5|1<<4)
@@ -357,7 +355,7 @@ EvalGame:
 ;*	Print both hands
 ;***********************************************************
 
-PrintResult:
+PrintResult:								; Print Winner of Game
 		cp play, opplay
 		brne Print2
 		rcall WriteResultDraw
